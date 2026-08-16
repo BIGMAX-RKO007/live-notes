@@ -6,4 +6,4 @@ CREATE TABLE `users` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `users_username_unique` ON `users` (`username`);--> statement-breakpoint
-ALTER TABLE `notes` ADD `user_id` text NOT NULL REFERENCES users(id);
+ALTER TABLE `notes` ADD `user_id` text DEFAULT '' NOT NULL REFERENCES users(id);
