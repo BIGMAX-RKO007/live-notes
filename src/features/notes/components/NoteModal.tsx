@@ -1,4 +1,8 @@
+import { adsConfig } from '../../../shared/config/ads.config';
+
 export const NoteModal = () => {
+  const footerAd = adsConfig.modalFooterBanner;
+
   return (
     <div>
       {/* Floating Action Button */}
@@ -100,6 +104,21 @@ export const NoteModal = () => {
             >
               贴在手账本里 🌸
             </button>
+
+            {/* Native Ad / Promo Banner Footer */}
+            {footerAd && footerAd.enabled && (
+              <div class="mt-3 pt-3 border-t border-[#eee5dc] text-center">
+                <a
+                  href={footerAd.targetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50/80 border border-amber-200/80 text-[11px] font-medium text-amber-900 hover:text-amber-950 hover:bg-amber-100/90 transition-all font-sans cursor-pointer"
+                >
+                  <span>{footerAd.icon}</span>
+                  <span>{footerAd.text}</span>
+                </a>
+              </div>
+            )}
           </form>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { Child } from 'hono/jsx';
+import { adsConfig } from '../config/ads.config';
 
 interface LayoutProps {
   children: Child;
@@ -12,6 +13,16 @@ export const Layout = ({ children, title }: LayoutProps) => {
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
+
+        {/* Google AdSense Script (Ownership Verification & Auto Ads) */}
+        {adsConfig.googleAdSense && adsConfig.googleAdSense.enabled && (
+          <script
+            async
+            src={adsConfig.googleAdSense.scriptUrl}
+            crossOrigin="anonymous"
+          />
+        )}
+
         {/* Google Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -133,6 +144,21 @@ export const Layout = ({ children, title }: LayoutProps) => {
               background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(216, 180, 254, 0.4) 5px, rgba(216, 180, 254, 0.4) 10px);
               border-top: 1px solid rgba(192, 132, 252, 0.4);
               border-bottom: 1px solid rgba(192, 132, 252, 0.4);
+            }
+            .washi-tape-gold {
+              background-color: rgba(253, 224, 71, 0.85);
+              background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(217, 119, 6, 0.45) 5px, rgba(217, 119, 6, 0.45) 10px);
+              border-top: 1px solid rgba(217, 119, 6, 0.5);
+              border-bottom: 1px solid rgba(217, 119, 6, 0.5);
+            }
+
+            @keyframes bookmark-swing {
+              0%, 100% { transform: rotate(0deg); }
+              50% { transform: rotate(-4deg); }
+            }
+            .animate-bookmark-swing {
+              animation: bookmark-swing 4s ease-in-out infinite;
+              transform-origin: top center;
             }
 
             /* Skeuomorphic shadow & warmth for journal notes */

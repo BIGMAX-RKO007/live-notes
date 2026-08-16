@@ -1,5 +1,7 @@
 import { Note } from '../../notes/components/Note';
 import { NoteModal } from '../../notes/components/NoteModal';
+import { SponsorNote } from '../../notes/components/SponsorNote';
+import { CornerBookmark } from './CornerBookmark';
 
 interface BoardProps {
   notes: Array<{
@@ -31,7 +33,7 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
           <div class="px-3.5 py-1.5 bg-[#f4ebe1] border border-[#e2d4c7] rounded-full text-[#6b5b52] font-medium whitespace-nowrap text-xs font-serif">
             留言总数: <span id="note-count" class="font-mono text-amber-800 font-bold">{notes.length}</span> 张
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 sm:gap-4 text-xs font-sans w-full sm:w-auto justify-between sm:justify-end">
             <button 
               onclick="
                 if (navigator.share) {
@@ -43,15 +45,13 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
                 } else {
                   navigator.clipboard.writeText(window.location.href);
                   const toast = document.getElementById('share-toast');
-                  toast.classList.remove('opacity-0', 'translate-y-2');
-                  toast.classList.add('translate-y-0');
-                  setTimeout(() => {
-                    toast.classList.add('opacity-0', 'translate-y-2');
-                    toast.classList.remove('translate-y-0');
-                  }, 2500);
+                  if (toast) {
+                    toast.classList.remove('opacity-0', 'pointer-events-none');
+                    setTimeout(() => toast.classList.add('opacity-0', 'pointer-events-none'), 2500);
+                  }
                 }
               "
-              class="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-semibold transition-all select-none cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-sm shadow-amber-900/10 active:scale-95 border border-amber-300/80 rounded-xl text-xs font-sans"
+              class="px-4 py-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 rounded-xl font-semibold transition-all shadow-sm shadow-amber-900/10 flex items-center gap-1.5 cursor-pointer border border-amber-300"
             >
               🔗 分享画板
             </button>
@@ -60,7 +60,7 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
                 hx-get="/api/board/friends-modal"
                 hx-target="body"
                 hx-swap="beforeend"
-                class="px-4 py-1.5 bg-[#f4ebe1] hover:bg-[#ebdcd0] border border-[#e2d4c7] rounded-xl text-[#6b5b52] font-semibold transition-all select-none cursor-pointer whitespace-nowrap text-xs font-sans"
+                class="px-4 py-2 bg-[#f4ebe1] hover:bg-[#ebdcd0] text-[#6b5b52] border border-[#e2d4c7] rounded-xl font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
               >
                 👥 朋友的画板
               </button>
@@ -69,7 +69,7 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
                 hx-get="/api/board/my-redirect"
                 hx-target="body"
                 hx-swap="beforeend"
-                class="px-4 py-1.5 bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-300 hover:to-pink-400 text-white font-semibold transition-all select-none cursor-pointer whitespace-nowrap shadow-sm shadow-rose-900/10 active:scale-95 border border-rose-300/80 rounded-xl text-xs font-sans"
+                class="px-4 py-2 bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-300 hover:to-pink-400 text-white rounded-xl font-semibold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm border border-rose-300"
               >
                 🏠 我的画板
               </button>
@@ -78,13 +78,12 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
         </div>
       </header>
 
-      {/* Share success toast */}
+      {/* Share Toast */}
       <div 
-        id="share-toast" 
-        class="fixed top-24 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-[#fffdfa] border border-[#e2d4c7] rounded-2xl text-[#5c4a40] text-sm font-medium font-serif transition-all duration-300 opacity-0 translate-y-2 pointer-events-none shadow-lg flex items-center gap-2"
+        id="share-toast"
+        class="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-amber-900/90 text-amber-50 text-xs font-sans shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-2 border border-amber-700"
       >
-        <span>🌸</span>
-        <span>手账分享链接已成功复制，快去发给好友吧！</span>
+        ✨ 链接已复制到剪贴板，快分享给好朋友吧！
       </div>
 
       {/* Main Interactive Board Canvas */}
@@ -92,6 +91,12 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
         id="board-canvas" 
         class="flex-grow w-full h-full relative overflow-hidden"
       >
+        {/* Native Brand Sponsor Note Card */}
+        <SponsorNote />
+
+        {/* Floating Corner Bookmark Ad */}
+        <CornerBookmark />
+
         {/* Polling container - pulls notes updates every 3s specific to the board owner */}
         <div
           id="board-notes-container"
