@@ -7,11 +7,15 @@ export class NotesService {
     return this.notesRepo.getAllNotes();
   }
 
+  async getNotesByUserId(userId: string) {
+    return this.notesRepo.getNotesByUserId(userId);
+  }
+
   async getNoteById(id: string) {
     return this.notesRepo.getNoteById(id);
   }
 
-  async createNote(content: string, color: string) {
+  async createNote(content: string, color: string, userId: string) {
     const trimmedContent = content.trim();
     if (!trimmedContent) {
       throw new Error('留言内容不能为空');
@@ -30,6 +34,7 @@ export class NotesService {
       color,
       xPos,
       yPos,
+      userId,
       createdAt: now,
       updatedAt: now,
     });
@@ -57,5 +62,13 @@ export class NotesService {
 
   async deleteNote(id: string) {
     return this.notesRepo.deleteNote(id);
+  }
+
+  async incrementLikes(id: string) {
+    const [updatedNote] = await this.notesRepo.incrementLikes(id);
+    if (!updatedNote) {
+      throw new Error('未找到该留言');
+    }
+    return updatedNote;
   }
 }

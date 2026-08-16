@@ -7,11 +7,15 @@ interface LayoutProps {
 
 export const Layout = ({ children, title }: LayoutProps) => {
   return (
-    <html lang="zh-CN" class="h-full bg-slate-950 text-slate-100">
+    <html lang="zh-CN" class="h-full bg-[#fcfaf7] text-[#382b26] antialiased selection:bg-amber-200 selection:text-amber-900">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
+        {/* Google Fonts */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Serif+SC:wght@400;600;700&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" />
         {/* Tailwind CSS */}
         <script src="https://cdn.tailwindcss.com"></script>
         {/* Configure Tailwind with custom values */}
@@ -20,8 +24,16 @@ export const Layout = ({ children, title }: LayoutProps) => {
             tailwind.config = {
               theme: {
                 extend: {
+                  fontFamily: {
+                    sans: ['Outfit', 'system-ui', 'sans-serif'],
+                    serif: ['Noto Serif SC', 'Georgia', 'serif'],
+                    handwritten: ['Zhi Mang Xing', 'Noto Serif SC', 'cursive'],
+                  },
                   colors: {
-                    board: '#0f172a',
+                    journal: '#fcfaf7',
+                    'journal-card': '#fffdfa',
+                    'journal-dark': '#382b26',
+                    'journal-muted': '#78685f',
                   }
                 }
               }
@@ -32,47 +44,165 @@ export const Layout = ({ children, title }: LayoutProps) => {
         <script src="https://unpkg.com/htmx.org@1.9.12"></script>
         <style dangerouslySetInnerHTML={{
           __html: `
-            /* Beautiful gradient background */
+            /* Cozy Cream Journal Grid Canvas */
             .board-grid {
-              background-color: #0c0f1d;
+              background-color: #fcfaf7;
               background-image: 
-                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
-                radial-gradient(at 50% 0%, hsla(225,39%,25%,0.3) 0, transparent 50%), 
-                radial-gradient(at 100% 0%, hsla(339,49%,20%,0.2) 0, transparent 50%),
-                radial-gradient(at 0% 100%, hsla(225,39%,15%,0.3) 0, transparent 50%), 
-                radial-gradient(at 100% 100%, hsla(253,16%,7%,1) 0, transparent 50%);
-              background-size: cover;
+                radial-gradient(at 15% 15%, rgba(254, 243, 199, 0.45) 0px, transparent 50%),
+                radial-gradient(at 85% 85%, rgba(253, 230, 138, 0.3) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(254, 215, 170, 0.25) 0px, transparent 70%);
+              background-attachment: fixed;
             }
+            
+            /* Ambient Sunset Drifting Light Glows */
+            .drift-glow-1 {
+              position: absolute;
+              width: 700px;
+              height: 700px;
+              border-radius: 50%;
+              background: radial-gradient(circle, rgba(253, 230, 138, 0.25) 0%, rgba(253, 230, 138, 0) 70%);
+              top: -15%;
+              left: 15%;
+              filter: blur(90px);
+              animation: drift 28s infinite alternate ease-in-out;
+              pointer-events: none;
+            }
+            .drift-glow-2 {
+              position: absolute;
+              width: 800px;
+              height: 800px;
+              border-radius: 50%;
+              background: radial-gradient(circle, rgba(254, 215, 170, 0.2) 0%, rgba(254, 215, 170, 0) 70%);
+              bottom: -20%;
+              right: 10%;
+              filter: blur(100px);
+              animation: drift 35s infinite alternate-reverse ease-in-out;
+              pointer-events: none;
+            }
+            @keyframes drift {
+              0% { transform: translate(0, 0) scale(1); }
+              50% { transform: translate(60px, 40px) scale(1.08); }
+              100% { transform: translate(-30px, -60px) scale(0.92); }
+            }
+
+            /* Infinite Journal Grid Notebook lines */
             .grid-dots {
-              background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-              background-size: 28px 28px;
+              background-image: 
+                linear-gradient(rgba(212, 197, 185, 0.22) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(212, 197, 185, 0.22) 1px, transparent 1px);
+              background-size: 24px 24px;
+              background-position: center;
             }
-            /* Custom scrollbars */
+
+            /* Soft Warm Vignette screen borders */
+            .vignette-overlay {
+              position: absolute;
+              inset: 0;
+              background: radial-gradient(circle, transparent 50%, rgba(217, 197, 180, 0.18) 100%);
+              pointer-events: none;
+              z-index: 5;
+            }
+
+            /* Skeuomorphic Torn Washi Tape (和纸胶带) */
+            .washi-tape-yellow {
+              background-color: rgba(254, 240, 138, 0.75);
+              background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(253, 224, 71, 0.4) 5px, rgba(253, 224, 71, 0.4) 10px);
+              border-top: 1px solid rgba(250, 204, 21, 0.4);
+              border-bottom: 1px solid rgba(250, 204, 21, 0.4);
+            }
+            .washi-tape-pink {
+              background-color: rgba(251, 207, 232, 0.75);
+              background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(244, 114, 182, 0.35) 5px, rgba(244, 114, 182, 0.35) 10px);
+              border-top: 1px solid rgba(244, 114, 182, 0.4);
+              border-bottom: 1px solid rgba(244, 114, 182, 0.4);
+            }
+            .washi-tape-blue {
+              background-color: rgba(191, 219, 254, 0.75);
+              background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(147, 197, 253, 0.4) 5px, rgba(147, 197, 253, 0.4) 10px);
+              border-top: 1px solid rgba(96, 165, 250, 0.4);
+              border-bottom: 1px solid rgba(96, 165, 250, 0.4);
+            }
+            .washi-tape-green {
+              background-color: rgba(187, 247, 208, 0.75);
+              background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(134, 239, 172, 0.4) 5px, rgba(134, 239, 172, 0.4) 10px);
+              border-top: 1px solid rgba(74, 222, 128, 0.4);
+              border-bottom: 1px solid rgba(74, 222, 128, 0.4);
+            }
+            .washi-tape-purple {
+              background-color: rgba(233, 213, 255, 0.75);
+              background-image: repeating-linear-gradient(-45deg, transparent, transparent 5px, rgba(216, 180, 254, 0.4) 5px, rgba(216, 180, 254, 0.4) 10px);
+              border-top: 1px solid rgba(192, 132, 252, 0.4);
+              border-bottom: 1px solid rgba(192, 132, 252, 0.4);
+            }
+
+            /* Skeuomorphic shadow & warmth for journal notes */
+            .paper-shadow {
+              box-shadow: 
+                0 4px 12px rgba(107, 91, 82, 0.07), 
+                0 1px 3px rgba(107, 91, 82, 0.04),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            }
+            .paper-shadow:hover {
+              box-shadow: 
+                0 12px 24px rgba(107, 91, 82, 0.12), 
+                0 4px 8px rgba(107, 91, 82, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
+              transform: translateY(-4px) scale(1.02) !important;
+              transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            }
+
+            /* Journal Card subtle texture */
+            .paper-texture {
+              position: relative;
+            }
+            .paper-texture::after {
+              content: "";
+              position: absolute;
+              inset: 0;
+              border-radius: inherit;
+              background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.025'/%3E%3C/svg%3E");
+              pointer-events: none;
+              mix-blend-mode: multiply;
+              z-index: 2;
+            }
+
+            /* Custom Cozy Scrollbars */
             ::-webkit-scrollbar {
-              width: 8px;
-              height: 8px;
+              width: 7px;
+              height: 7px;
             }
             ::-webkit-scrollbar-track {
-              background: rgba(12, 15, 29, 0.5);
+              background: rgba(240, 230, 220, 0.3);
             }
             ::-webkit-scrollbar-thumb {
-              background: rgba(148, 163, 184, 0.2);
-              border-radius: 4px;
+              background: rgba(195, 175, 160, 0.45);
+              border-radius: 99px;
             }
             ::-webkit-scrollbar-thumb:hover {
-              background: rgba(148, 163, 184, 0.4);
+              background: rgba(175, 155, 140, 0.65);
             }
-            /* Transition for note deletion */
+
+            /* HTMX Swapping transition */
             .htmx-swapping {
               opacity: 0 !important;
-              transform: scale(0.9) rotate(5deg) !important;
-              transition: all 0.3s ease-out !important;
+              transform: scale(0.9) rotate(4deg) !important;
+              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
             }
           `
         }} />
       </head>
-      <body class="h-full overflow-hidden board-grid grid-dots flex flex-col font-sans antialiased select-none">
-        {children}
+      <body class="h-full overflow-hidden board-grid grid-dots flex flex-col font-sans select-none relative text-[#382b26]">
+        {/* Ambient Sunset Light */}
+        <div class="drift-glow-1"></div>
+        <div class="drift-glow-2"></div>
+        
+        {/* Soft Vignette border */}
+        <div class="vignette-overlay"></div>
+
+        {/* Content Shell */}
+        <div class="relative z-10 flex flex-col h-full w-full">
+          {children}
+        </div>
       </body>
     </html>
   );

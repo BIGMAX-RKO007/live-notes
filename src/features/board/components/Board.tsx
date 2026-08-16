@@ -8,38 +8,94 @@ interface BoardProps {
     color: string;
     xPos: number;
     yPos: number;
+    likes?: number;
   }>;
+  isOwner?: boolean;
+  username: string;
 }
 
-export const Board = ({ notes }: BoardProps) => {
+export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
   return (
-    <div class="flex-grow flex flex-col h-full overflow-hidden relative">
-      {/* Header Bar */}
-      <header class="z-30 flex items-center justify-between px-8 py-4 bg-slate-900/60 backdrop-blur-md border-b border-slate-800/80 shadow-md">
-        <div class="flex flex-col">
-          <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-2">
-            📌 实时匿名留言墙
+    <div class="flex-grow flex flex-col h-full overflow-hidden relative bg-transparent">
+      {/* Header Bar - Cozy Journal Folder Style */}
+      <header class="z-30 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mx-4 sm:mx-8 mt-4 px-6 py-3.5 bg-[#fffdfa]/90 backdrop-blur-md border border-[#e8ded5] rounded-2xl shadow-sm shadow-[#4a3b32]/5">
+        <div class="flex flex-col max-w-full">
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-[#382b26] flex items-center gap-2 font-serif select-none">
+            📖 {username === 'public' ? '公共' : `${username} 的`}{isOwner ? '专属' : '分享'}治愈手账
           </h1>
-          <p class="text-xs text-slate-400 mt-0.5">
-            双击便签内容可进行编辑，拖拽可调整任意便签的位置
+          <p class="text-[11px] sm:text-xs text-[#78685f] mt-0.5 font-sans select-none break-words">
+            {isOwner ? '双击便签内容可编辑，按住手账贴纸可自由摆放位置' : '只读模式。您正在翻阅他人的手账页面，数据同步中'}
           </p>
         </div>
-        <div class="flex items-center gap-4 text-xs">
-          <div class="px-3 py-1.5 bg-slate-950 border border-slate-800 rounded-full text-slate-300 font-medium">
-            留言总数: <span id="note-count" class="font-mono text-indigo-400 font-bold">{notes.length}</span> 张
+        <div class="flex items-center gap-2 sm:gap-4 text-xs font-sans w-full sm:w-auto justify-between sm:justify-end">
+          <div class="px-3.5 py-1.5 bg-[#f4ebe1] border border-[#e2d4c7] rounded-full text-[#6b5b52] font-medium whitespace-nowrap text-xs font-serif">
+            留言总数: <span id="note-count" class="font-mono text-amber-800 font-bold">{notes.length}</span> 张
+          </div>
+          <div class="flex items-center gap-2">
+            <button 
+              onclick="
+                if (navigator.share) {
+                  navigator.share({
+                    title: document.title,
+                    text: '快来看看我的专属手账留言墙吧！',
+                    url: window.location.href
+                  }).catch(err => console.log('Share failed:', err));
+                } else {
+                  navigator.clipboard.writeText(window.location.href);
+                  const toast = document.getElementById('share-toast');
+                  toast.classList.remove('opacity-0', 'translate-y-2');
+                  toast.classList.add('translate-y-0');
+                  setTimeout(() => {
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    toast.classList.remove('translate-y-0');
+                  }, 2500);
+                }
+              "
+              class="px-4 py-1.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-semibold transition-all select-none cursor-pointer flex items-center gap-1.5 whitespace-nowrap shadow-sm shadow-amber-900/10 active:scale-95 border border-amber-300/80 rounded-xl text-xs font-sans"
+            >
+              🔗 分享画板
+            </button>
+            {isOwner ? (
+              <button 
+                hx-get="/api/board/friends-modal"
+                hx-target="body"
+                hx-swap="beforeend"
+                class="px-4 py-1.5 bg-[#f4ebe1] hover:bg-[#ebdcd0] border border-[#e2d4c7] rounded-xl text-[#6b5b52] font-semibold transition-all select-none cursor-pointer whitespace-nowrap text-xs font-sans"
+              >
+                👥 朋友的画板
+              </button>
+            ) : (
+              <button 
+                hx-get="/api/board/my-redirect"
+                hx-target="body"
+                hx-swap="beforeend"
+                class="px-4 py-1.5 bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-300 hover:to-pink-400 text-white font-semibold transition-all select-none cursor-pointer whitespace-nowrap shadow-sm shadow-rose-900/10 active:scale-95 border border-rose-300/80 rounded-xl text-xs font-sans"
+              >
+                🏠 我的画板
+              </button>
+            )}
           </div>
         </div>
       </header>
+
+      {/* Share success toast */}
+      <div 
+        id="share-toast" 
+        class="fixed top-24 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-[#fffdfa] border border-[#e2d4c7] rounded-2xl text-[#5c4a40] text-sm font-medium font-serif transition-all duration-300 opacity-0 translate-y-2 pointer-events-none shadow-lg flex items-center gap-2"
+      >
+        <span>🌸</span>
+        <span>手账分享链接已成功复制，快去发给好友吧！</span>
+      </div>
 
       {/* Main Interactive Board Canvas */}
       <div 
         id="board-canvas" 
         class="flex-grow w-full h-full relative overflow-hidden"
       >
-        {/* Polling container - pulls notes updates every 3s */}
+        {/* Polling container - pulls notes updates every 3s specific to the board owner */}
         <div
           id="board-notes-container"
-          hx-get="/api/notes/list"
+          hx-get={`/api/notes/list?boardOwner=${username}`}
           hx-trigger="every 3s"
           hx-swap="innerHTML"
           class="w-full h-full absolute inset-0 p-4"
@@ -52,100 +108,106 @@ export const Board = ({ notes }: BoardProps) => {
               color={note.color}
               xPos={note.xPos}
               yPos={note.yPos}
+              likes={note.likes}
+              isOwner={isOwner}
             />
           ))}
         </div>
       </div>
 
-      {/* Floating note creation modal */}
-      <NoteModal />
+      {/* Floating note creation modal (Only visible to owner) */}
+      {isOwner && <NoteModal />}
 
       {/* Client-side Drag & Drop Logic + HTMX Integration */}
       <script dangerouslySetInnerHTML={{
         __html: `
           (function() {
+            const isOwner = ${isOwner ? 'true' : 'false'};
+            
             let activeNote = null;
             let startX = 0;
             let startY = 0;
             let initialLeft = 0;
             let initialTop = 0;
             window.isDragging = false;
-
+ 
             const canvas = document.getElementById('board-canvas');
             const container = document.getElementById('board-notes-container');
-
+ 
             // Handle start dragging (delegated to container)
             function startDrag(e) {
+              if (!isOwner) return; // Disable dragging for non-owners
+
               // Ignore if clicking a button or input inside the card
               if (e.target.closest('button') || e.target.closest('form') || e.target.closest('input') || e.target.closest('textarea')) {
                 return;
               }
-
+ 
               const card = e.target.closest('.note-card');
               if (!card) return;
-
+ 
               activeNote = card;
               window.isDragging = true;
               card.style.zIndex = 1000; // Bring card to front
-
+ 
               // Get pointer coords
               const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
               const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
-
+ 
               startX = clientX;
               startY = clientY;
-
+ 
               // Parse percentages to pixels relative to canvas
               const rect = canvas.getBoundingClientRect();
               initialLeft = (parseFloat(card.style.left) / 100) * rect.width;
               initialTop = (parseFloat(card.style.top) / 100) * rect.height;
-
+ 
               document.addEventListener('mousemove', drag);
               document.addEventListener('touchmove', drag, { passive: false });
               document.addEventListener('mouseup', endDrag);
               document.addEventListener('touchend', endDrag);
             }
-
+ 
             // Drag execution
             function drag(e) {
               if (!activeNote) return;
               if (e.cancelable) e.preventDefault(); // Prevent scroll on touch
-
+ 
               const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
               const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
-
+ 
               const deltaX = clientX - startX;
               const deltaY = clientY - startY;
-
+ 
               const rect = canvas.getBoundingClientRect();
               
               // Calculate new position in pixels
               let newLeftPx = initialLeft + deltaX;
               let newTopPx = initialTop + deltaY;
-
+ 
               // Constrain boundaries (keep note completely or mostly inside canvas)
               const cardWidth = activeNote.offsetWidth;
               const cardHeight = activeNote.offsetHeight;
               
               newLeftPx = Math.max(0, Math.min(newLeftPx, rect.width - cardWidth));
               newTopPx = Math.max(0, Math.min(newTopPx, rect.height - cardHeight));
-
+ 
               // Convert back to percentages
               const xPosPercent = (newLeftPx / rect.width) * 100;
               const yPosPercent = (newTopPx / rect.height) * 100;
-
+ 
               activeNote.style.left = xPosPercent + '%';
               activeNote.style.top = yPosPercent + '%';
             }
-
+ 
             // End drag, save coordinates to backend
             function endDrag(e) {
               if (!activeNote) return;
-
+ 
               const noteId = activeNote.getAttribute('data-note-id');
               const xPos = parseFloat(activeNote.style.left);
               const yPos = parseFloat(activeNote.style.top);
-
+ 
               // Update database via fetch PUT
               fetch('/api/notes/' + noteId + '/position', {
                 method: 'PUT',
@@ -154,7 +216,7 @@ export const Board = ({ notes }: BoardProps) => {
                 },
                 body: JSON.stringify({ xPos, yPos })
               }).catch(err => console.error('Failed to save position:', err));
-
+ 
               activeNote.style.zIndex = ''; // Restore z-index
               activeNote = null;
               
@@ -162,24 +224,26 @@ export const Board = ({ notes }: BoardProps) => {
               setTimeout(function() {
                 window.isDragging = false;
               }, 100);
-
+ 
               document.removeEventListener('mousemove', drag);
               document.removeEventListener('touchmove', drag);
               document.removeEventListener('mouseup', endDrag);
               document.removeEventListener('touchend', endDrag);
             }
-
-            // Bind start listeners
-            container.addEventListener('mousedown', startDrag);
-            container.addEventListener('touchstart', startDrag, { passive: true });
-
+ 
+            // Bind start drag listeners if owner
+            if (isOwner) {
+              container.addEventListener('mousedown', startDrag);
+              container.addEventListener('touchstart', startDrag, { passive: true });
+            }
+ 
             // HTMX integration: Prevent board polling while dragging
             document.addEventListener('htmx:beforeRequest', function(evt) {
               if (evt.detail.target.id === 'board-notes-container' && window.isDragging) {
                 evt.preventDefault(); // Cancel the request
               }
             });
-
+ 
             // HTMX integration: Update note count badge dynamically
             document.addEventListener('htmx:afterOnLoad', function(evt) {
               if (evt.detail.target.id === 'board-notes-container') {
@@ -187,6 +251,21 @@ export const Board = ({ notes }: BoardProps) => {
                 document.getElementById('note-count').innerText = count;
               }
             });
+
+            // Add current board to visited history in localStorage
+            (function() {
+              const boardName = "${username}";
+              if (boardName && boardName !== 'public') {
+                let list = [];
+                try {
+                  list = JSON.parse(localStorage.getItem('visited_boards') || '[]');
+                } catch(e) {}
+                list = list.filter(function(item) { return item !== boardName; });
+                list.unshift(boardName);
+                list = list.slice(0, 10);
+                localStorage.setItem('visited_boards', JSON.stringify(list));
+              }
+            })();
           })();
         `
       }} />

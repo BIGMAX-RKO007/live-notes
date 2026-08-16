@@ -1,13 +1,17 @@
+import { getAnonymousNickname } from '../../../shared/utils/nickname';
+
 interface NoteProps {
   id: string;
   content: string;
   color: string;
   xPos: number;
   yPos: number;
+  likes?: number;
+  isOwner?: boolean;
   key?: string;
 }
 
-export const Note = ({ id, content, color, xPos, yPos }: NoteProps) => {
+export const Note = ({ id, content, color, xPos, yPos, likes = 0, isOwner = true }: NoteProps) => {
   // Deterministic tilt based on ID to look organic but remain consistent
   const getTiltClass = (noteId: string) => {
     const sum = noteId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -15,37 +19,42 @@ export const Note = ({ id, content, color, xPos, yPos }: NoteProps) => {
     return tilts[sum % tilts.length];
   };
 
-  // Color classes for sticky notes
-  const colorMap: Record<string, { bg: string; border: string; text: string; pin: string }> = {
+  // Color classes for cozy Morandi journal notes
+  const colorMap: Record<string, { bg: string; border: string; text: string; tapeClass: string; tapeAngle: string }> = {
     yellow: {
-      bg: 'bg-[#fef9c3]',
-      border: 'border-yellow-200',
-      text: 'text-yellow-900',
-      pin: 'bg-yellow-500',
+      bg: 'bg-gradient-to-br from-[#fffdf7] to-[#fef6e4]',
+      border: 'border-[#f5ea8a]/80',
+      text: 'text-[#4a3b32]',
+      tapeClass: 'washi-tape-yellow',
+      tapeAngle: '-rotate-2',
     },
     pink: {
-      bg: 'bg-[#fce7f3]',
-      border: 'border-pink-200',
-      text: 'text-pink-900',
-      pin: 'bg-pink-500',
+      bg: 'bg-gradient-to-br from-[#fff8fa] to-[#fcf0e4]',
+      border: 'border-[#fbcfe8]/80',
+      text: 'text-[#4a3b32]',
+      tapeClass: 'washi-tape-pink',
+      tapeAngle: 'rotate-1.5',
     },
     blue: {
-      bg: 'bg-[#dbeafe]',
-      border: 'border-blue-200',
-      text: 'text-blue-900',
-      pin: 'bg-blue-500',
+      bg: 'bg-gradient-to-br from-[#f8fafc] to-[#eaf4f4]',
+      border: 'border-[#bae6fd]/80',
+      text: 'text-[#334155]',
+      tapeClass: 'washi-tape-blue',
+      tapeAngle: '-rotate-1',
     },
     green: {
-      bg: 'bg-[#dcfce7]',
-      border: 'border-green-200',
-      text: 'text-green-900',
-      pin: 'bg-green-500',
+      bg: 'bg-gradient-to-br from-[#f8faf8] to-[#e8f5e9]',
+      border: 'border-[#c6f6d5]/80',
+      text: 'text-[#2e4a3b]',
+      tapeClass: 'washi-tape-green',
+      tapeAngle: 'rotate-2',
     },
     purple: {
-      bg: 'bg-[#f3e8ff]',
-      border: 'border-purple-200',
-      text: 'text-purple-900',
-      pin: 'bg-purple-500',
+      bg: 'bg-gradient-to-br from-[#faf8fc] to-[#f3e8ff]',
+      border: 'border-[#e9d5ff]/80',
+      text: 'text-[#4a3b4e]',
+      tapeClass: 'washi-tape-purple',
+      tapeAngle: '-rotate-1.5',
     },
   };
 
@@ -55,43 +64,67 @@ export const Note = ({ id, content, color, xPos, yPos }: NoteProps) => {
   return (
     <div
       id={`note-${id}`}
-      class={`note-card absolute p-5 w-60 min-h-[150px] flex flex-col justify-between rounded-md shadow-lg border hover:shadow-2xl transition-shadow duration-200 ${style.bg} ${style.border} ${style.text} ${tilt} cursor-grab active:cursor-grabbing`}
+      class={`note-card absolute p-6 w-64 min-h-[175px] flex flex-col justify-between rounded-md paper-shadow paper-texture border ${style.bg} ${style.border} ${style.text} ${tilt} ${isOwner ? 'cursor-grab active:cursor-grabbing' : ''}`}
       style={{ left: `${xPos}%`, top: `${yPos}%`, touchAction: 'none' }}
       data-note-id={id}
     >
-      {/* Decorative pin */}
-      <div class="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full shadow-inner bg-slate-700/80 flex items-center justify-center">
-        <div class={`w-1.5 h-1.5 rounded-full ${style.pin}`} />
-      </div>
+      {/* Skeuomorphic Washi Tape (和纸胶带) Top Strip */}
+      <div 
+        class={`absolute -top-3.5 left-1/2 -translate-x-1/2 w-24 h-7 ${style.tapeClass} ${style.tapeAngle} shadow-sm pointer-events-none z-10 opacity-90`}
+        style={{
+          clipPath: 'polygon(0% 10%, 4% 0%, 96% 0%, 100% 10%, 97% 25%, 100% 40%, 96% 55%, 100% 70%, 97% 85%, 100% 100%, 96% 100%, 4% 100%, 0% 100%, 3% 85%, 0% 70%, 4% 55%, 0% 40%, 3% 25%)'
+        }}
+      />
 
-      {/* Delete button (Top Right) */}
-      <button
-        class="absolute top-2 right-2 opacity-0 hover:opacity-100 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-opacity duration-150 p-1 rounded-full hover:bg-slate-900/5 text-xs font-bold leading-none cursor-pointer"
-        hx-delete={`/api/notes/${id}`}
-        hx-target={`#note-${id}`}
-        hx-swap="outerHTML swap:0.3s"
-        title="删除留言"
-        style={{ opacity: '0.4' }} // always slightly visible for touch screens
-      >
-        ✕
-      </button>
+      {/* Delete button (Top Right, only visible to owner) */}
+      {isOwner && (
+        <button
+          class="absolute top-2.5 right-2.5 opacity-30 hover:opacity-100 text-[#8c7b70] hover:text-red-500 transition-all duration-150 p-1 rounded-full hover:bg-black/5 text-xs font-bold leading-none cursor-pointer z-20"
+          hx-delete={`/api/notes/${id}`}
+          hx-target={`#note-${id}`}
+          hx-swap="outerHTML swap:0.3s"
+          title="删除留言"
+        >
+          ✕
+        </button>
+      )}
 
-      {/* Note content (double-click to edit) */}
-      <div
-        class="note-content mt-2 flex-grow overflow-y-auto break-words text-sm font-medium leading-relaxed font-sans pr-1"
-        hx-get={`/api/notes/${id}/edit`}
-        hx-trigger="dblclick"
-        hx-target="this"
-        hx-swap="outerHTML"
-        title="双击可编辑内容"
-      >
-        {content}
-      </div>
+      {/* Note content (double-click to edit, beautiful Noto Serif SC font) */}
+      {isOwner ? (
+        <div
+          class="note-content mt-3 flex-grow overflow-y-auto break-words text-[15px] font-serif font-semibold leading-relaxed pr-1 text-[#382b26]"
+          hx-get={`/api/notes/${id}/edit`}
+          hx-trigger="dblclick"
+          hx-target="this"
+          hx-swap="outerHTML"
+          title="双击可编辑内容"
+        >
+          {content}
+        </div>
+      ) : (
+        <div class="note-content mt-3 flex-grow overflow-y-auto break-words text-[15px] font-serif font-semibold leading-relaxed pr-1 text-[#382b26]">
+          {content}
+        </div>
+      )}
 
-      {/* Footer / Info */}
-      <div class="mt-4 flex items-center justify-between text-[10px] opacity-40 font-mono select-none">
-        <span>#{id.slice(0, 8)}</span>
-        <span>双击编辑</span>
+      {/* Footer / Info with Likes Stamp and Nickname Stamp */}
+      <div class="mt-4 pt-2 border-t border-[#e6ded6]/60 flex items-center justify-between text-[11px] select-none font-sans">
+        {/* Likes Button (anyone can click) */}
+        <button 
+          hx-post={`/api/notes/${id}/like`}
+          hx-swap="outerHTML" 
+          class="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-[#f4ebe1]/80 hover:bg-[#ebdcd0] border border-[#e2d4c7] transition-all text-[11px] font-bold text-rose-500 active:scale-95 cursor-pointer shadow-sm select-none"
+          onclick="event.stopPropagation()"
+          title="给这条手账留言点赞"
+        >
+          ❤️ <span class="text-[#6b5b52] font-mono font-medium">{likes}</span>
+        </button>
+
+        {/* Anonymous Nickname Stamp */}
+        <span class="text-[11px] text-[#8c7b70] font-serif font-medium tracking-wide flex items-center gap-1 bg-[#f4ebe1]/60 px-2 py-0.5 rounded border border-[#e8ded5]">
+          <span>{getAnonymousNickname(id)}</span>
+          <span class="text-[9px] opacity-70 font-sans border border-[#8c7b70]/40 rounded px-0.5 scale-90">印</span>
+        </span>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { notes } from './notes.schema';
 
 export class NotesRepository {
@@ -6,6 +6,14 @@ export class NotesRepository {
 
   async getAllNotes() {
     return this.db.select().from(notes).orderBy(desc(notes.createdAt));
+  }
+
+  async getNotesByUserId(userId: string) {
+    return this.db
+      .select()
+      .from(notes)
+      .where(eq(notes.userId, userId))
+      .orderBy(desc(notes.createdAt));
   }
 
   async getNoteById(id: string) {
@@ -19,6 +27,7 @@ export class NotesRepository {
     color: string;
     xPos: number;
     yPos: number;
+    userId: string;
     createdAt: Date;
     updatedAt: Date;
   }) {
@@ -42,5 +51,13 @@ export class NotesRepository {
 
   async deleteNote(id: string) {
     return this.db.delete(notes).where(eq(notes.id, id));
+  }
+
+  async incrementLikes(id: string) {
+    return this.db
+      .update(notes)
+      .set({ likes: sql`${notes.likes} + 1` })
+      .where(eq(notes.id, id))
+      .returning();
   }
 }
