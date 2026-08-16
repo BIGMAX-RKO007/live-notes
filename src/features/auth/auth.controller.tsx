@@ -19,52 +19,52 @@ authApp.get('/login-modal', (c) => {
   return c.html(
     <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div class="relative w-full max-w-md p-8 mx-4 rounded-2xl border border-[#e2d4c7] bg-[#fffdfa] shadow-2xl">
-        <button 
+        <button
           class="absolute top-4 right-4 text-[#8c7b70] hover:text-[#382b26] transition-colors p-1 rounded-full hover:bg-black/5"
           onclick="document.getElementById('auth-modal').remove()"
         >
           ✕
         </button>
         <h2 class="text-2xl font-bold text-[#382b26] text-center mb-6 font-serif">打开我的手账本</h2>
-        
+
         <div id="auth-error" class="hidden mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-sm text-center font-sans"></div>
 
-        <form 
-          hx-post="/api/auth/login" 
-          hx-target="#auth-error" 
+        <form
+          hx-post="/api/auth/login"
+          hx-target="#auth-error"
           hx-swap="innerHTML"
           class="flex flex-col gap-4"
         >
           <div>
             <label class="block text-xs font-semibold text-[#8c7b70] uppercase tracking-wider mb-2 font-sans">用户名</label>
-            <input 
-              type="text" 
-              name="username" 
-              required 
-              placeholder="请输入您的用户名" 
+            <input
+              type="text"
+              name="username"
+              required
+              placeholder="请输入您的用户名"
               class="w-full px-4 py-3 rounded-xl border border-[#e2d4c7] bg-[#fcfaf7] text-[#382b26] placeholder-[#b5a69c] focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 transition-all font-sans"
             />
           </div>
           <div>
             <label class="block text-xs font-semibold text-[#8c7b70] uppercase tracking-wider mb-2 font-sans">密码</label>
-            <input 
-              type="password" 
-              name="password" 
-              required 
-              placeholder="请输入您的密码" 
+            <input
+              type="password"
+              name="password"
+              required
+              placeholder="请输入您的密码"
               class="w-full px-4 py-3 rounded-xl border border-[#e2d4c7] bg-[#fcfaf7] text-[#382b26] placeholder-[#b5a69c] focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-400 transition-all font-sans"
             />
           </div>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             class="w-full py-3 mt-2 rounded-xl bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-300 hover:to-pink-400 text-white font-semibold transition-all shadow-md shadow-rose-900/10 active:scale-[0.98] font-sans cursor-pointer"
           >
             开启手账本
           </button>
         </form>
         <div class="mt-6 text-center text-sm text-[#8c7b70] font-sans">
-          还没有手账本？ 
-          <button 
+          还没有手账本？
+          <button
             class="text-rose-500 hover:underline ml-1 cursor-pointer font-medium"
             hx-get="/api/auth/register-modal"
             hx-target="#auth-modal"
@@ -83,29 +83,29 @@ authApp.get('/register-modal', (c) => {
   return c.html(
     <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div class="relative w-full max-w-md p-8 mx-4 rounded-2xl border border-[#e2d4c7] bg-[#fffdfa] shadow-2xl">
-        <button 
+        <button
           class="absolute top-4 right-4 text-[#8c7b70] hover:text-[#382b26] transition-colors p-1 rounded-full hover:bg-black/5"
           onclick="document.getElementById('auth-modal').remove()"
         >
           ✕
         </button>
-        <h2 class="text-2xl font-bold text-[#382b26] text-center mb-6 font-serif">新建专属治愈手账</h2>
-        
+        <h2 class="text-2xl font-bold text-[#382b26] text-center mb-6 font-serif">新建专属留言墙</h2>
+
         <div id="auth-error" class="hidden mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-sm text-center font-sans"></div>
 
-        <form 
-          hx-post="/api/auth/register" 
-          hx-target="#auth-error" 
+        <form
+          hx-post="/api/auth/register"
+          hx-target="#auth-error"
           hx-swap="innerHTML"
           class="flex flex-col gap-4"
         >
           <div>
             <label class="block text-xs font-semibold text-[#8c7b70] uppercase tracking-wider mb-2 font-sans">用户名</label>
-            <input 
-              type="text" 
-              name="username" 
-              required 
-              placeholder="限字母、数字，如 fanxiao" 
+            <input
+              type="text"
+              name="username"
+              required
+              placeholder="限字母、数字，如 fanxiao"
               pattern="^[a-zA-Z0-9_]{3,15}$"
               title="用户名只能包含3-15位字母、数字或下划线"
               class="w-full px-4 py-3 rounded-xl border border-[#e2d4c7] bg-[#fcfaf7] text-[#382b26] placeholder-[#b5a69c] focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all font-sans"
@@ -113,25 +113,25 @@ authApp.get('/register-modal', (c) => {
           </div>
           <div>
             <label class="block text-xs font-semibold text-[#8c7b70] uppercase tracking-wider mb-2 font-sans">密码</label>
-            <input 
-              type="password" 
-              name="password" 
-              required 
-              placeholder="请输入密码（最少6位）" 
+            <input
+              type="password"
+              name="password"
+              required
+              placeholder="请输入密码（最少6位）"
               minLength={6}
               class="w-full px-4 py-3 rounded-xl border border-[#e2d4c7] bg-[#fcfaf7] text-[#382b26] placeholder-[#b5a69c] focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all font-sans"
             />
           </div>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             class="w-full py-3 mt-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 font-semibold transition-all shadow-md shadow-amber-900/10 active:scale-[0.98] font-sans cursor-pointer"
           >
             完成新建并进入
           </button>
         </form>
         <div class="mt-6 text-center text-sm text-[#8c7b70] font-sans">
-          已有手账本？ 
-          <button 
+          已有手账本？
+          <button
             class="text-amber-700 hover:underline ml-1 cursor-pointer font-medium"
             hx-get="/api/auth/login-modal"
             hx-target="#auth-modal"
@@ -163,12 +163,12 @@ authApp.post('/login', async (c) => {
   }
 
   // Issue signed session cookie with JWT (valid for 7 days)
-  const token = await sign({ 
-    userId: user.id, 
-    username: user.username, 
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 
+  const token = await sign({
+    userId: user.id,
+    username: user.username,
+    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7
   }, JWT_SECRET);
-  
+
   setCookie(c, 'session', token, {
     path: '/',
     httpOnly: true,
@@ -236,10 +236,10 @@ authApp.post('/register', async (c) => {
   ];
   await db.insert(notes).values(welcomeNotes);
 
-  const token = await sign({ 
-    userId, 
-    username, 
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 
+  const token = await sign({
+    userId,
+    username,
+    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7
   }, JWT_SECRET);
 
   setCookie(c, 'session', token, {

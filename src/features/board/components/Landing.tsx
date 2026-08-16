@@ -23,7 +23,7 @@ export const Landing = () => {
         </div>
 
         <h1 class="text-4xl sm:text-6xl font-bold tracking-tight text-[#382b26] font-serif">
-          治愈手账留言墙
+          留言墙
         </h1>
 
         <p class="text-lg sm:text-xl text-[#78685f] font-medium leading-relaxed max-w-lg font-sans">
@@ -33,7 +33,7 @@ export const Landing = () => {
         </p>
 
         <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md mt-4">
-          <button 
+          <button
             hx-get="/api/auth/login-modal"
             hx-target="body"
             hx-swap="beforeend"
@@ -41,7 +41,7 @@ export const Landing = () => {
           >
             📖 我的画板
           </button>
-          <button 
+          <button
             hx-get="/api/board/friends-modal"
             hx-target="body"
             hx-swap="beforeend"
@@ -52,7 +52,7 @@ export const Landing = () => {
         </div>
 
         <div class="mt-10 text-xs text-[#b5a69c] tracking-wider uppercase font-serif">
-          📖 治愈系·实时手账空间 · Powered by Hono + HTMX
+          📖 实时手账空间
         </div>
       </div>
     </div>
