@@ -256,3 +256,81 @@ npm run deploy
 3. 找到 **“子域 (Subdomain)”** 这一行，点击右侧的 **“铅笔（编辑）”** 图标。
 4. 将子域前缀修改为您的专属标识（例如 `fanxiao`）并保存。保存后，刚才部署的项目无需重新打包，即可立即通过新子域 `https://live-notes.fanxiao.workers.dev` 访问！
 
+---
+
+## 📅 如何进行数据库表结构变更 (Schema Migrations)
+
+**重要原则**：在 Serverless 和 Edge 环境中，**“修改代码重新部署”并不会自动变更云端的数据库结构**。代码的逻辑演进与数据库的表结构演进是相互独立的，必须显式触发迁移。
+
+当您由于业务调整需要对数据库进行**增/删/改字段**时，请严格按照以下标准化流程操作：
+
+### 1. 第一步：修改 TypeScript 结构定义
+在代码文件 [src/db/schema.ts](file:///home/fx/Develop/hono/src/db/schema.ts) 中直接对表结构进行增删改。例如，为留言板增加一个 `tag`（标签）字段：
+```typescript
+export const notes = sqliteTable('notes', {
+  id: text('id').primaryKey(),
+  content: text('content').notNull(),
+  tag: text('tag').default('未分类'), // 新增字段
+  // ... 其他字段
+});
+```
+
+### 2. 第二步：在本地生成 SQL 变更脚本
+运行 Drizzle Kit CLI 对比 Schema 变化，并在 `migrations/` 目录下生成对应的 SQL 升级脚本：
+```bash
+npx drizzle-kit generate
+```
+*   **说明**：Drizzle Kit 会自动生成类似于 `0001_xxx.sql` 的文件，内容类似于 `ALTER TABLE notes ADD COLUMN tag TEXT DEFAULT '未分类';`。
+
+### 3. 第三步：将变更应用到本地与云端 D1 数据库
+您必须分别将 SQL 迁移脚本应用到您的本地数据库及云端 D1 数据库：
+```bash
+# A. 应用到本地开发测试用的 SQLite 数据库
+npx wrangler d1 migrations apply live-notes-db --local
+
+# B. 应用到 Cloudflare 生产环境的云端 D1 数据库 (提示时输入 y 确认)
+CLOUDFLARE_API_TOKEN="您的_API_TOKEN" npx wrangler d1 migrations apply live-notes-db --remote
+```
+*   **注意**：在这一步执行完毕前，千万不要部署使用新字段的业务代码，否则线上服务会因找不到字段而崩溃。
+
+### 4. 第四步：编写业务逻辑并重新部署代码
+当数据库表结构变更在云端应用成功后，您可以修改您的 API 路由（如 `src/index.tsx`）去读写新字段，然后运行部署命令：
+```bash
+npm run deploy
+```
+
+---
+
+## 🤖 GitHub Actions CI/CD 自动化部署指南
+
+为了实现多人协作时的“持续集成与自动部署 (CI/CD)”，我们已经在项目根目录配置了 GitHub Actions 自动化工作流：[.github/workflows/deploy.yml](file:///home/fx/Develop/hono/.github/workflows/deploy.yml)。
+
+一旦配置完成，**您每次向 GitHub 的 `main` 分支推送代码，GitHub 服务器都会全自动执行类型检查、云端数据库迁移同步和 Hono Worker 全栈代码部署。**
+
+### 1. 配置 GitHub 密钥 (Secrets)
+由于构建过程需要访问您的 Cloudflare 账户，您需要在 GitHub 仓库中配置您的 API 密钥：
+1. 打开您的 GitHub 仓库页面（例如：`https://github.com/BIGMAX-RKO007/live-notes`）。
+2. 进入顶部的 **Settings**（设置）标签页。
+3. 在左侧菜单栏中选择 **Secrets and variables** -> **Actions**。
+4. 点击右上角的 **“New repository secret”** 按钮。
+5. 填写密钥信息：
+   *   **Name**: `CLOUDFLARE_API_TOKEN`
+   *   **Secret**: 粘贴您从 Cloudflare 申请的那个包含 D1 和 Workers 编辑权限的 API Token。
+6. 点击 **“Add secret”** 保存。
+
+### 2. 触发自动化部署流
+在本地终端中，只需执行标准的 Git 推送命令，即可触发云端自动化构建：
+```bash
+# 1. 暂存所有修改（包含最新的模块化重构代码与工作流配置文件）
+git add .
+
+# 2. 提交本地更改
+git commit -m "refactor: implement modular Feature-Folder CSR architecture"
+
+# 3. 推送至 GitHub
+git push origin main
+```
+*   **说明**：推送完成后，您可以在 GitHub 仓库的 **Actions** 标签页中，实时看到编译、类型检查、D1 迁移、以及 Workers 部署的日志和结果，彻底告别本地终端网络差导致 Timeout 失败的问题！
+
+
+

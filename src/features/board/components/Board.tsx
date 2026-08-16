@@ -1,5 +1,5 @@
-import { Note } from './Note';
-import { NoteModal } from './NoteModal';
+import { Note } from '../../notes/components/Note';
+import { NoteModal } from '../../notes/components/NoteModal';
 
 interface BoardProps {
   notes: Array<{
