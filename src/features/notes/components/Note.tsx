@@ -8,16 +8,30 @@ interface NoteProps {
   yPos: number;
   likes?: number;
   isOwner?: boolean;
+  isLoggedIn?: boolean;
   authorUsername?: string;
   key?: string;
 }
 
 /**
  * 业务意图：单个手账便签卡片渲染组件 (Sticky Note Card Component)。
- * 呈现莫兰迪手账配色、和纸胶带撕边图案、手账落款与点赞互动组件。
- * 遵循核心规则：普通用户视图 100% 只读不可被普通用户篡改或删除。
+ * 呈现莫兰迪手账配色、和纸胶带撕边图案、手账落款、撕掉与点赞互动组件。
+ * 遵循 ABC 核心规则：仅已登录的好友访客 (!isOwner && isLoggedIn) 可在此处撕掉便签与拖拽。
  */
-export const Note = ({ id, content, color, xPos, yPos, likes = 0, authorUsername }: NoteProps) => {
+export const Note = ({ 
+  id, 
+  content, 
+  color, 
+  xPos, 
+  yPos, 
+  likes = 0, 
+  isOwner = false,
+  isLoggedIn = false,
+  authorUsername 
+}: NoteProps) => {
+  // 撕掉权限计算：仅当访问朋友画板 (isOwner === false) 且用户已登录时可撕便签
+  const canDelete = !isOwner && isLoggedIn;
+
   // 【步骤 1/4】算法推演：基于 noteId 的 ASCII 散列决定卡片的微倾斜角度 (Tilt Angle)
   const getTiltClass = (noteId: string) => {
     const sum = noteId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -80,6 +94,21 @@ export const Note = ({ id, content, color, xPos, yPos, likes = 0, authorUsername
           clipPath: 'polygon(0% 10%, 4% 0%, 96% 0%, 100% 10%, 97% 25%, 100% 40%, 96% 55%, 100% 70%, 97% 85%, 100% 100%, 96% 100%, 4% 100%, 0% 100%, 3% 85%, 0% 70%, 4% 55%, 0% 40%, 3% 25%)'
         }}
       />
+
+      {/* 好友撕掉便签按钮：仅当做客朋友画板且已登录时显示 */}
+      {canDelete && (
+        <button
+          class="absolute top-2.5 right-2.5 opacity-40 hover:opacity-100 text-[#8c7b70] hover:text-red-500 transition-all duration-150 py-0.5 px-1.5 rounded-full hover:bg-black/5 text-[10px] font-medium leading-none cursor-pointer z-20 flex items-center gap-0.5 border border-transparent hover:border-red-200"
+          hx-delete={`/api/notes/${id}`}
+          hx-target={`#note-${id}`}
+          hx-swap="outerHTML swap:0.3s"
+          onclick="event.stopPropagation()"
+          title="帮朋友撕掉这条便签"
+        >
+          <span>🗑️</span>
+          <span>撕掉</span>
+        </button>
+      )}
 
       {/* 文本内容只读渲染 */}
       <div class="note-content mt-3 flex-grow overflow-y-auto break-words text-[15px] font-serif font-semibold leading-relaxed pr-1 text-[#382b26]">

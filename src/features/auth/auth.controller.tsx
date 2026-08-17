@@ -126,25 +126,27 @@ authApp.post('/register', async (c) => {
     createdAt: new Date(),
   });
 
-  // 【步骤 5/6】新手体验冷启动预置 (Seeding)：自动向 `notes` 表写入 2 张突出“只能贴别人、不能改自己”核心乐趣的便签
+  // 【步骤 5/6】新手体验冷启动预置 (Seeding)：自动向 `notes` 表写入 2 张突出“去朋友墙上贴纸/整理/撕掉”核心乐趣的便签
   const welcomeNotes = [
     {
       id: crypto.randomUUID(),
-      content: '🔒 铁律规则：这里是您的真实评价收集箱！您无法在自己墙上贴便签，更不能篡改他人给您的评价——保持 100% 真实纯粹！快点击右上角【🔗 分享画板】发给好友，看看大家会在您墙上留什么温暖告白或搞笑吐槽吧！🤭✨',
+      content: '🔒 铁律规则：这里是您的专属留痕墙！主人无法在自己墙上发帖或修改画面——保持 100% 真实纯粹！快点击右上角【🔗 分享画板】发给好友，邀请大家来您的墙上贴纸、排版与守护吧！🤭✨',
       color: 'yellow',
       xPos: 18,
       yPos: 30,
       userId: userId,
+      authorUsername: '系统小助手',
       createdAt: new Date(),
       updatedAt: new Date(),
     },
     {
       id: crypto.randomUUID(),
-      content: '🚀 核心乐趣：想说话？去“霸占”朋友的留言墙！点击右上角【👥 朋友的画板】，输入朋友用户名，去 TA 的墙上贴下属于您的专属便签！真心话、生日祝福还是恶搞，贴上对方就改不了！快去给朋友一个惊喜吧！🎈🔥',
+      content: '🚀 核心乐趣：想说话？去“霸占”朋友的留言墙！点击右上角【👥 朋友的画板】，去 TA 的墙上贴下属于您的便签、帮忙排版，或者帮 TA 撕掉恶搞贴纸！快去给朋友一个惊喜吧！🎈🔥',
       color: 'pink',
       xPos: 55,
       yPos: 26,
       userId: userId,
+      authorUsername: '系统小助手',
       createdAt: new Date(),
       updatedAt: new Date(),
     }

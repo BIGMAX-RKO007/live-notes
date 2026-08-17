@@ -147,6 +147,7 @@ notesApp.get('/list', async (c) => {
           yPos={note.yPos}
           likes={note.likes}
           isOwner={isOwner}
+          isLoggedIn={Boolean(sessionToken)}
           authorUsername={note.authorUsername}
         />
       ))}
@@ -224,6 +225,7 @@ notesApp.post('/', async (c) => {
         yPos={newNote.yPos} 
         likes={newNote.likes}
         isOwner={false}
+        isLoggedIn={true}
         authorUsername={newNote.authorUsername || currentUsername}
       />
     );
