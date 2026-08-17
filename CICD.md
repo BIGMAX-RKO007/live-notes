@@ -11,6 +11,7 @@
 1. `migrations/0000_white_synch.sql`：创建基础 `notes` 留言卡片表。
 2. `migrations/0001_cynical_ironclad.sql`：创建 `users` 用户实体表，并添加外键关联。
 3. `migrations/0002_cynical_hemingway.sql`：为 `notes` 表增加 `likes` (点赞数) 字段。
+4. `migrations/0003_chubby_captain_midlands.sql`：创建 `admin_otps` 管理员验证码落盘表。
 
 ---
 

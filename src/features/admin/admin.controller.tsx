@@ -10,9 +10,11 @@ import { AdminLayout } from './components/AdminLayout';
 import { AdminDashboard } from './components/AdminDashboard';
 import { JWT_SECRET } from '../auth/auth.controller';
 import { adsConfig } from '../../shared/config/ads.config';
+import { sendEmailOTP } from '../../shared/utils/email';
 
 type Bindings = {
   DB: D1Database;
+  RESEND_API_KEY?: string;
 };
 
 // 指定的管理员主邮箱
@@ -201,17 +203,24 @@ adminApp.post('/send-otp', async (c) => {
     createdAt: now,
   });
 
-  // 5. 终端控制台高亮打印 Log
-  console.log('\n==================================================');
-  console.log(`🔑 [ADMIN EMAIL OTP] 收件人: ${email}`);
-  console.log(`🔑 [ADMIN EMAIL OTP] 动态验证码: ${code} (5分钟内有效)`);
-  console.log('==================================================\n');
+  // 5. 尝试通过 Resend API 发送真实邮件，或降级为 Dev 调试口令展示
+  const resendApiKey = (c.env as any).RESEND_API_KEY;
+  const sendResult = await sendEmailOTP(email, code, resendApiKey);
+
+  if (sendResult.mode === 'email') {
+    return c.html(
+      `<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono text-center">
+        ✉️ 验证码已成功发送至您的邮箱 ${email}！<br/>
+        <span class="text-[11px] text-slate-300 block mt-1">请前往邮箱查收 6 位动态口令（5分钟内有效）</span>
+      </div>`
+    );
+  }
 
   return c.html(
-    `<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono text-center">
-      ✅ 验证码已成功生成并发送！<br/>
+    `<div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-mono text-center">
+      ✅ 验证码已成功生成！<br/>
       <span class="text-amber-300 font-bold tracking-wider mt-1 block">🔑 调试口令: ${code}</span>
-      <span class="text-[10px] text-slate-400 block mt-0.5">(已打印至终端 Log，5分钟内有效)</span>
+      <span class="text-[10px] text-slate-400 block mt-0.5">(已打印至终端 Log / 未配置 RESEND_API_KEY)</span>
     </div>`
   );
 });
