@@ -32,7 +32,7 @@ export const AuthModal = ({ mode = 'login' }: AuthModalProps) => {
         <form
           hx-post={isLogin ? '/api/auth/login' : '/api/auth/register'}
           hx-target="#auth-error"
-          hx-swap="innerHTML"
+          hx-swap="outerHTML"
           class="flex flex-col gap-4"
         >
           <div>

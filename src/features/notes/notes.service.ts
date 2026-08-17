@@ -32,7 +32,13 @@ export class NotesService {
    * 业务意图：创建新便签核心算法逻辑。
    * 副作用：过滤空白符；生成屏幕 15%-75% 范围内的随机 X/Y 坐标（避免多张卡片完全重叠覆盖）；写 D1 库。
    */
-  async createNote(content: string, color: string, userId: string) {
+  async createNote(
+    content: string, 
+    color: string, 
+    userId: string,
+    authorId?: string,
+    authorUsername?: string
+  ) {
     // 【步骤 1/4】业务校验：清洗文本并检查非空
     const trimmedContent = content.trim();
     
@@ -58,6 +64,8 @@ export class NotesService {
       xPos,
       yPos,
       userId,
+      authorId,
+      authorUsername,
       createdAt: now,
       updatedAt: now,
     });

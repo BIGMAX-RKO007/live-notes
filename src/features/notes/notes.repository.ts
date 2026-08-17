@@ -45,6 +45,8 @@ export class NotesRepository {
     xPos: number;
     yPos: number;
     userId: string;
+    authorId?: string;
+    authorUsername?: string;
     createdAt: Date;
     updatedAt: Date;
   }) {

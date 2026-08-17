@@ -7,6 +7,7 @@ import { NotesService } from './notes.service';
 import { users } from '../users/users.schema';
 import { JWT_SECRET } from '../auth/auth.controller';
 import { eq } from 'drizzle-orm';
+import { canUserPerformNoteAction, NotePermissionAction } from './notes.permission';
 
 // 便签关联展现组件
 import { Note } from './components/Note';
@@ -76,24 +77,11 @@ const checkNoteActionPermission = async (
 
     // 权限身份判定
     const isBoardOwner = note.userId === currentUserId;
-    const isNoteAuthor = isBoardOwner; // 现阶段画板宿主校验
-
-    // 【步骤 4/4】权限矩阵断言
-    let hasPermission = false;
-    switch (action) {
-      case 'drag':
-        // 主人或作者均可拖拽调整卡片位置
-        hasPermission = isBoardOwner || isNoteAuthor;
-        break;
-      case 'edit':
-        // 只有作者可以修改留言正文内容
-        hasPermission = isNoteAuthor;
-        break;
-      case 'delete':
-        // 主人可删除任意寄留在自己墙上的贴纸；作者亦可撤回自己的留言
-        hasPermission = isBoardOwner || isNoteAuthor;
-        break;
-    }
+    const isNoteAuthor = note.authorId === currentUserId;
+    const hasPermission = canUserPerformNoteAction(action as NotePermissionAction, {
+      isOwner: isBoardOwner,
+      isLoggedIn: true,
+    });
 
     // 分支 D：无匹配权限，防护性拦截
     if (!hasPermission) return null;
@@ -159,6 +147,7 @@ notesApp.get('/list', async (c) => {
           yPos={note.yPos}
           likes={note.likes}
           isOwner={isOwner}
+          authorUsername={note.authorUsername}
         />
       ))}
     </>
@@ -175,15 +164,30 @@ notesApp.post('/', async (c) => {
   const sessionToken = getCookie(c, 'session');
 
   // 分支 A：未登录阻止发布
-  if (!sessionToken) return c.text('未登录，无权发布', 401);
+  if (!sessionToken) {
+    return c.html(
+      `<script>
+        alert('您当前尚未登录。请先登录后，即可给朋友贴手账便签！');
+      </script>`,
+      401
+    );
+  }
 
   try {
     const payload = await verify(sessionToken, JWT_SECRET, 'HS256');
 
     // 分支 B：登录态失效
-    if (!payload || !payload.userId) return c.text('登录过期，请重新登录', 401);
+    if (!payload || !payload.userId) {
+      return c.html(
+        `<script>
+          alert('登录凭证已过期，请重新登录账号！');
+        </script>`,
+        401
+      );
+    }
     
     const currentUserId = String(payload.userId);
+    const currentUsername = String(payload.username || '');
 
     // 【步骤 2/5】解析并清洗表单提报参数
     const body = await c.req.parseBody();
@@ -200,9 +204,15 @@ notesApp.post('/', async (c) => {
     // 目标宿主 ID：若指定了 boardOwnerId 则贴在目标画板上
     const targetUserId = boardOwnerId || currentUserId;
 
-    // 【步骤 4/5】调用逻辑层计算随机位置坐标并写库
+    // 【步骤 4/5】调用逻辑层计算随机位置坐标，附带作者信息写库
     const service = getNotesService(c.env.DB);
-    const newNote = await service.createNote(content, color, targetUserId);
+    const newNote = await service.createNote(
+      content, 
+      color, 
+      targetUserId,
+      currentUserId,
+      currentUsername
+    );
     
     // 【步骤 5/5】局部置换：直接返回包含新便签的 Note 节点 HTML，供前端 HTMX 插入 append 到画布尾部
     return c.html(
@@ -214,6 +224,7 @@ notesApp.post('/', async (c) => {
         yPos={newNote.yPos} 
         likes={newNote.likes}
         isOwner={false}
+        authorUsername={newNote.authorUsername || currentUsername}
       />
     );
   } catch (error: any) {

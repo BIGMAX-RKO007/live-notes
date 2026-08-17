@@ -165,6 +165,7 @@ export const Board = ({
         __html: `
           (function() {
             const isOwner = ${isOwner ? 'true' : 'false'};
+            const isLoggedIn = ${isLoggedIn ? 'true' : 'false'};
             
             let activeNote = null;
             let startX = 0;
@@ -178,8 +179,8 @@ export const Board = ({
  
             // 拖拽开始函数：通过事件委托绑定到便签贴纸节点
             function startDrag(e) {
-              // 分支 A：非主人直接拦截拖拽行为
-              if (!isOwner) return;
+              // 核心规则：只能操作别人的墙！如果是自己的墙（isOwner === true）或未登录，禁止拖拽操作
+              if (isOwner || !isLoggedIn) return;
 
               // 分支 B：如果点击的是卡片内部的按钮、输入框或表单，放行原生点击，不触发卡片拖拽
               if (e.target.closest('button') || e.target.closest('form') || e.target.closest('input') || e.target.closest('textarea')) {
@@ -275,8 +276,8 @@ export const Board = ({
               document.removeEventListener('touchend', endDrag);
             }
  
-            // 若为画板主人，在容器上注册 mousedown/touchstart 事件委托
-            if (isOwner) {
+            // 核心规则：仅当在朋友的画板上（!isOwner）且用户已登录（isLoggedIn）时，在容器上注册拖拽监听事件
+            if (!isOwner && isLoggedIn) {
               container.addEventListener('mousedown', startDrag);
               container.addEventListener('touchstart', startDrag, { passive: true });
             }

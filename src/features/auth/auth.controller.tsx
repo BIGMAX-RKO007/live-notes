@@ -38,6 +38,8 @@ authApp.get('/register-modal', (c) => {
   return c.html(<AuthModal mode="register" />);
 });
 
+import { renderAuthError } from '../../shared/utils/response';
+
 /**
  * 业务意图：处理用户登录逻辑。校验密码成功后签发 HttpOnly JWT Session Cookie 并跳转至个人画板。
  * 副作用：查询 D1 数据库、校验密码 Hash；写 HttpOnly Cookie；触发前端 `HX-Redirect`。
@@ -50,8 +52,7 @@ authApp.post('/login', async (c) => {
 
   // 分支 A：参数非空校验（Guard Clause 防护性早退）
   if (!username || !password) {
-    // 实现方式：通过返回内联 JS 脚本操作前端报错 DOM 节点（可简化为 HTMX 错误模板）
-    return c.html(<script>const err = document.getElementById('auth-error'); err.innerText = '用户名和密码不能为空'; err.classList.remove('hidden');</script>);
+    return renderAuthError(c, '用户名和密码不能为空');
   }
 
   // 【步骤 2/5】建立数据库连接，在 D1 中查询目标用户名记录
@@ -61,7 +62,7 @@ authApp.post('/login', async (c) => {
   // 【步骤 3/5】账号凭证校验：比对用户是否存在以及 PBKDF2 密码 Hash 是否匹配
   // 分支 B：用户不存在或密码错误
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
-    return c.html(<script>const err = document.getElementById('auth-error'); err.innerText = '用户名或密码不正确'; err.classList.remove('hidden');</script>);
+    return renderAuthError(c, '用户名或密码不正确');
   }
 
   // 【步骤 4/5】凭证签发：生成 7 天有效的 HMAC-SHA256 签名 JWT 令牌
@@ -71,11 +72,10 @@ authApp.post('/login', async (c) => {
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7
   }, JWT_SECRET);
 
-  // 【步骤 5/5】安全存储：向 HTTP 响应头注入 HttpOnly、Secure、SameSite 保护的 Session Cookie
+  // 【步骤 5/5】安全存储：向 HTTP 响应头注入 Session Cookie
   setCookie(c, 'session', token, {
     path: '/',
     httpOnly: true,
-    secure: true,
     sameSite: 'Lax',
     maxAge: 60 * 60 * 24 * 7,
   });
@@ -97,12 +97,12 @@ authApp.post('/register', async (c) => {
 
   // 分支 A：用户名规格校验（只能为 3-15 位字母、数字或下划线）
   if (!username || username.length < 3 || username.length > 15 || !/^[a-zA-Z0-9_]+$/.test(username)) {
-    return c.html(<script>const err = document.getElementById('auth-error'); err.innerText = '用户名不合规，需为3-15位字母或数字'; err.classList.remove('hidden');</script>);
+    return renderAuthError(c, '用户名不合规，需为3-15位字母或数字');
   }
 
   // 分支 B：密码长度校验（最少 6 位）
   if (password.length < 6) {
-    return c.html(<script>const err = document.getElementById('auth-error'); err.innerText = '密码不能少于6位'; err.classList.remove('hidden');</script>);
+    return renderAuthError(c, '密码不能少于6位');
   }
 
   // 【步骤 2/6】查重校验：检测目标用户名是否已被其他用户注册
@@ -111,7 +111,7 @@ authApp.post('/register', async (c) => {
 
   // 分支 C：用户名已存在
   if (existingUser) {
-    return c.html(<script>const err = document.getElementById('auth-error'); err.innerText = '该用户名已被占用'; err.classList.remove('hidden');</script>);
+    return renderAuthError(c, '该用户名已被占用');
   }
 
   // 【步骤 3/6】数据准备与密码 Hash 加密（Web Crypto PBKDF2 10,000 次加盐迭代）
@@ -161,7 +161,6 @@ authApp.post('/register', async (c) => {
   setCookie(c, 'session', token, {
     path: '/',
     httpOnly: true,
-    secure: true,
     sameSite: 'Lax',
     maxAge: 60 * 60 * 24 * 7,
   });

@@ -24,6 +24,10 @@ export const notes = sqliteTable('notes', {
   // 关联画板主人的 Users 表外键 ID
   userId: text('user_id').notNull().references(() => users.id),
   
+  // 便签发布作者用户 ID 与用户名（方便落款识别与发布者追踪）
+  authorId: text('author_id'),
+  authorUsername: text('author_username'),
+  
   // 累计点赞数计数器，默认初始为 0
   likes: integer('likes').default(0).notNull(),
   
