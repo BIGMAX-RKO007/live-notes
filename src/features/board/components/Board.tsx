@@ -13,20 +13,41 @@ interface BoardProps {
     likes?: number;
   }>;
   isOwner?: boolean;
+  canPostNote?: boolean;
+  isLoggedIn?: boolean;
   username: string;
+  boardOwnerId?: string;
 }
 
-export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
+/**
+ * 业务意图：手账留言墙主大画布组件 (Main Journal Canvas)。
+ * 承载顶栏 Header、手账画板画布、原生赞助卡片、左下角悬挂书签、便签轮询容器及客户端拖拽交互算法。
+ * 副作用：渲染整体 UI，并在客户端嵌入拖拽拦截与 HTMX 轮询事件监听脚本。
+ */
+export const Board = ({ 
+  notes, 
+  isOwner = false, 
+  canPostNote = false, 
+  isLoggedIn = false, 
+  username, 
+  boardOwnerId = '' 
+}: BoardProps) => {
   return (
     <div class="flex-grow flex flex-col h-full overflow-hidden relative bg-transparent">
-      {/* Header Bar - Cozy Journal Folder Style */}
+      {/* 【步骤 1/4】顶栏 Header：显示画板主人名称、留言张数计数器、Web Share API 分享按钮与“切换朋友/我的画板”按钮 */}
       <header class="z-30 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mx-4 sm:mx-8 mt-4 px-6 py-3.5 bg-[#fffdfa]/90 backdrop-blur-md border border-[#e8ded5] rounded-2xl shadow-sm shadow-[#4a3b32]/5">
         <div class="flex flex-col max-w-full">
           <h1 class="text-lg sm:text-xl font-bold tracking-tight text-[#382b26] flex items-center gap-2 font-serif select-none">
             📖 {username === 'public' ? '公共' : `${username} 的`}{isOwner ? '专属' : '分享'}治愈手账
           </h1>
-          <p class="text-[11px] sm:text-xs text-[#78685f] mt-0.5 font-sans select-none break-words">
-            {isOwner ? '双击便签内容可编辑，按住手账贴纸可自由摆放位置' : '只读模式。您正在翻阅他人的手账页面，数据同步中'}
+          <p class="text-[11px] sm:text-xs text-[#78685f] mt-0.5 font-sans select-none break-words font-medium">
+            {isOwner ? (
+              '✨ 这是您的专属留言墙（只读查收）。点击【🔗 分享画板】发给好友，邀请大家为您留留言吧！'
+            ) : canPostNote ? (
+              `💌 您正在翻阅 ${username} 的留言墙。点击右下角【+】号可以给对方写便签哦！`
+            ) : (
+              `👀 您正在翻阅 ${username} 的留言墙。登录后即可给对方留便签！`
+            )}
           </p>
         </div>
         <div class="flex items-center gap-2 sm:gap-4 text-xs font-sans w-full sm:w-auto justify-between sm:justify-end">
@@ -34,6 +55,7 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
             留言总数: <span id="note-count" class="font-mono text-amber-800 font-bold">{notes.length}</span> 张
           </div>
           <div class="flex items-center gap-2 sm:gap-4 text-xs font-sans w-full sm:w-auto justify-between sm:justify-end">
+            {/* 分享按钮点击脚本：若设备支持 Web Share API 原生唤起系统分享，否则复制当前 URL 至剪贴板 */}
             <button 
               onclick="
                 if (navigator.share) {
@@ -55,6 +77,9 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
             >
               🔗 分享画板
             </button>
+
+            {/* 分支 A：若是画板主人，展示【👥 朋友的画板】按钮，发起 HTMX GET 请求加载查找弹窗 */}
+            {/* 分支 B：若是访客，展示【🏠 我的画板】按钮，发起 HTMX GET 请求校验或打开登录弹窗 */}
             {isOwner ? (
               <button 
                 hx-get="/api/board/friends-modal"
@@ -78,7 +103,7 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
         </div>
       </header>
 
-      {/* Share Toast */}
+      {/* 链接复制成功浮动 Toast */}
       <div 
         id="share-toast"
         class="fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl bg-amber-900/90 text-amber-50 text-xs font-sans shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none flex items-center gap-2 border border-amber-700"
@@ -86,18 +111,18 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
         ✨ 链接已复制到剪贴板，快分享给好朋友吧！
       </div>
 
-      {/* Main Interactive Board Canvas */}
+      {/* 【步骤 2/4】主画板大画布：挂载原生广告卡片、悬挂书签组件及 3 秒轮询容器 */}
       <div 
         id="board-canvas" 
         class="flex-grow w-full h-full relative overflow-hidden"
       >
-        {/* Native Brand Sponsor Note Card */}
+        {/* 品牌赞助手账卡片组件 */}
         <SponsorNote />
 
-        {/* Floating Corner Bookmark Ad */}
+        {/* 左下角悬挂书签与广告招租弹窗组件 */}
         <CornerBookmark />
 
-        {/* Polling container - pulls notes updates every 3s specific to the board owner */}
+        {/* 便签轮询容器：配置 `hx-trigger="every 3s"`，每 3 秒自动向后端获取最新便签 DOM 局部更新 */}
         <div
           id="board-notes-container"
           hx-get={`/api/notes/list?boardOwner=${username}`}
@@ -120,10 +145,22 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
         </div>
       </div>
 
-      {/* Floating note creation modal (Only visible to owner) */}
-      {isOwner && <NoteModal />}
+      {/* 【步骤 3/4】撰写便签浮动模态框（只有在别人墙上 + 已登录状态下才展现 `+` 号撰写按钮；未登录展现登录引导） */}
+      {canPostNote ? (
+        <NoteModal boardOwnerId={boardOwnerId} />
+      ) : !isLoggedIn && !isOwner ? (
+        <button
+          hx-get="/api/board/my-redirect"
+          hx-target="body"
+          hx-swap="beforeend"
+          class="fixed bottom-8 right-8 z-40 flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 rounded-full shadow-lg shadow-amber-900/20 animate-[pulse_2.5s_infinite] transition-all duration-150 active:scale-95 cursor-pointer font-bold text-2xl border border-amber-300"
+          title="登录后给对方留下手账留言"
+        >
+          +
+        </button>
+      ) : null}
 
-      {/* Client-side Drag & Drop Logic + HTMX Integration */}
+      {/* 【步骤 4/4】客户端原生 JS 脚本：事件委托拖拽算法 + HTMX 轮询冲突拦截器 + localStorage 历史记录写入 */}
       <script dangerouslySetInnerHTML={{
         __html: `
           (function() {
@@ -139,11 +176,12 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
             const canvas = document.getElementById('board-canvas');
             const container = document.getElementById('board-notes-container');
  
-            // Handle start dragging (delegated to container)
+            // 拖拽开始函数：通过事件委托绑定到便签贴纸节点
             function startDrag(e) {
-              if (!isOwner) return; // Disable dragging for non-owners
+              // 分支 A：非主人直接拦截拖拽行为
+              if (!isOwner) return;
 
-              // Ignore if clicking a button or input inside the card
+              // 分支 B：如果点击的是卡片内部的按钮、输入框或表单，放行原生点击，不触发卡片拖拽
               if (e.target.closest('button') || e.target.closest('form') || e.target.closest('input') || e.target.closest('textarea')) {
                 return;
               }
@@ -152,17 +190,16 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
               if (!card) return;
  
               activeNote = card;
-              window.isDragging = true;
-              card.style.zIndex = 1000; // Bring card to front
+              window.isDragging = true; // 标记拖拽状态，告知 HTMX 暂停轮询刷新
+              card.style.zIndex = 1000; // 提高当前拖拽卡片的层级至最前
  
-              // Get pointer coords
               const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
               const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
  
               startX = clientX;
               startY = clientY;
  
-              // Parse percentages to pixels relative to canvas
+              // 将百分比坐标转化为绝对像素以便精准推演偏移
               const rect = canvas.getBoundingClientRect();
               initialLeft = (parseFloat(card.style.left) / 100) * rect.width;
               initialTop = (parseFloat(card.style.top) / 100) * rect.height;
@@ -173,10 +210,10 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
               document.addEventListener('touchend', endDrag);
             }
  
-            // Drag execution
+            // 拖拽过程更新：实时推演百分比坐标与画布边界约束
             function drag(e) {
               if (!activeNote) return;
-              if (e.cancelable) e.preventDefault(); // Prevent scroll on touch
+              if (e.cancelable) e.preventDefault(); // 阻止移动端 Touch 事件的默认页面滚动行为
  
               const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
               const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
@@ -186,26 +223,28 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
  
               const rect = canvas.getBoundingClientRect();
               
-              // Calculate new position in pixels
               let newLeftPx = initialLeft + deltaX;
               let newTopPx = initialTop + deltaY;
  
-              // Constrain boundaries (keep note completely or mostly inside canvas)
+              // 画布边界溢出拦截防护 (Boundary Constraints)
               const cardWidth = activeNote.offsetWidth;
               const cardHeight = activeNote.offsetHeight;
               
               newLeftPx = Math.max(0, Math.min(newLeftPx, rect.width - cardWidth));
               newTopPx = Math.max(0, Math.min(newTopPx, rect.height - cardHeight));
  
-              // Convert back to percentages
-              const xPosPercent = (newLeftPx / rect.width) * 100;
-              const yPosPercent = (newTopPx / rect.height) * 100;
- 
+              // 转换回相对百分比坐标，并实施严密的百分比防护钳制 (Percentage Boundary Clamp: 1% ~ 82%)
+              let xPosPercent = (newLeftPx / rect.width) * 100;
+              let yPosPercent = (newTopPx / rect.height) * 100;
+
+              xPosPercent = Math.max(1, Math.min(xPosPercent, 82));
+              yPosPercent = Math.max(1, Math.min(yPosPercent, 80));
+
               activeNote.style.left = xPosPercent + '%';
               activeNote.style.top = yPosPercent + '%';
             }
  
-            // End drag, save coordinates to backend
+            // 拖拽释放：发起 PUT /api/notes/:id/position 持久化最新坐标
             function endDrag(e) {
               if (!activeNote) return;
  
@@ -213,7 +252,7 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
               const xPos = parseFloat(activeNote.style.left);
               const yPos = parseFloat(activeNote.style.top);
  
-              // Update database via fetch PUT
+              // 异步提交位置更新
               fetch('/api/notes/' + noteId + '/position', {
                 method: 'PUT',
                 headers: {
@@ -222,10 +261,10 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
                 body: JSON.stringify({ xPos, yPos })
               }).catch(err => console.error('Failed to save position:', err));
  
-              activeNote.style.zIndex = ''; // Restore z-index
+              activeNote.style.zIndex = ''; 
               activeNote = null;
               
-              // Set timeout to release dragging flag, preventing HTMX poll from instantly firing
+              // 延迟 100ms 恢复拖拽标记，防止轮询请求瞬时重构 DOM
               setTimeout(function() {
                 window.isDragging = false;
               }, 100);
@@ -236,20 +275,20 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
               document.removeEventListener('touchend', endDrag);
             }
  
-            // Bind start drag listeners if owner
+            // 若为画板主人，在容器上注册 mousedown/touchstart 事件委托
             if (isOwner) {
               container.addEventListener('mousedown', startDrag);
               container.addEventListener('touchstart', startDrag, { passive: true });
             }
  
-            // HTMX integration: Prevent board polling while dragging
+            // HTMX 拦截器 1：当用户正在拖拽卡片时，拦截 3 秒周期的轮询刷新，防止光标下的卡片被重新置换跳跃
             document.addEventListener('htmx:beforeRequest', function(evt) {
               if (evt.detail.target.id === 'board-notes-container' && window.isDragging) {
-                evt.preventDefault(); // Cancel the request
+                evt.preventDefault();
               }
             });
  
-            // HTMX integration: Update note count badge dynamically
+            // HTMX 拦截器 2：轮询成功后，更新顶栏留言总数徽章
             document.addEventListener('htmx:afterOnLoad', function(evt) {
               if (evt.detail.target.id === 'board-notes-container') {
                 const count = document.querySelectorAll('#board-notes-container .note-card').length;
@@ -257,7 +296,7 @@ export const Board = ({ notes, isOwner = true, username }: BoardProps) => {
               }
             });
 
-            // Add current board to visited history in localStorage
+            // 写入本地历史记录：记录已访问过的画板到 localStorage，排重并保留最新 10 条
             (function() {
               const boardName = "${username}";
               if (boardName && boardName !== 'public') {

@@ -1,12 +1,17 @@
+/**
+ * 业务意图：未登录访客首页 Landing 宣传落地页组件 (Landing Page Component)。
+ * 展现手账留言墙标语、示例拟物卡片、以及“我的画板（注册/登录）”和“朋友的画板（按用户名查找）”双入口。
+ * 副作用：无状态，通过 HTMX 发起模态框拉取请求。
+ */
 export const Landing = () => {
   return (
     <div class="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-transparent px-4">
-      {/* Decorative Warm Sunset Glow Orbs */}
+      {/* 装饰性暖阳柔光晕层 */}
       <div class="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-amber-200/30 blur-3xl pointer-events-none"></div>
       <div class="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 rounded-full bg-orange-200/20 blur-3xl pointer-events-none"></div>
 
       <div class="relative z-10 text-center max-w-2xl flex flex-col items-center gap-6">
-        {/* Floating Journal Cards with Washi Tapes Deco */}
+        {/* 顶部三张并排微倾斜拟物便签示例卡片 (和纸胶带装饰) */}
         <div class="flex gap-4 mb-3 select-none pointer-events-none relative">
           <div class="relative w-16 h-16 bg-gradient-to-br from-[#fffdf7] to-[#fef6e4] rounded-lg paper-shadow rotate-[-6deg] border border-[#f5ea8a] flex items-center justify-center font-bold text-amber-900 text-xl font-serif">
             <div class="absolute -top-2 left-1/2 -translate-x-1/2 w-10 h-3.5 washi-tape-yellow opacity-90 shadow-sm" />
@@ -22,17 +27,20 @@ export const Landing = () => {
           </div>
         </div>
 
+        {/* 品牌大标题与治愈主标语 */}
         <h1 class="text-4xl sm:text-6xl font-bold tracking-tight text-[#382b26] font-serif">
           留言墙
         </h1>
 
         <p class="text-lg sm:text-xl text-[#78685f] font-medium leading-relaxed max-w-lg font-sans">
-          记录日常温暖微光，贴在彼此的手账本里。
+          记录日常温暖微光，贴在彼此的留言墙里。
           <br />
-          <span class="text-sm text-[#a09085]">好友可在线翻阅与点赞，只有您可以自由撰写与移动贴纸。</span>
+          <span class="text-sm text-[#a09085]">好友可在线翻阅与点赞，您可以自由撰写与移动贴纸。</span>
         </p>
 
+        {/* 双入口核心交互区 */}
         <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md mt-4">
+          {/* 【入口 1】“我的画板”：发起 HTMX GET /api/auth/login-modal，打开登录/注册弹窗 */}
           <button
             hx-get="/api/auth/login-modal"
             hx-target="body"
@@ -41,6 +49,7 @@ export const Landing = () => {
           >
             📖 我的画板
           </button>
+          {/* 【入口 2】“朋友的画板”：发起 HTMX GET /api/board/friends-modal，打开朋友用户名查找与历史纪录弹窗 */}
           <button
             hx-get="/api/board/friends-modal"
             hx-target="body"
@@ -52,7 +61,7 @@ export const Landing = () => {
         </div>
 
         <div class="mt-10 text-xs text-[#b5a69c] tracking-wider uppercase font-serif">
-          📖 实时手账空间
+          📖 实时留言墙
         </div>
       </div>
     </div>

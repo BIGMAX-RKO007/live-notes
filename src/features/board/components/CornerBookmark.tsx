@@ -1,10 +1,20 @@
 import { adsConfig } from '../../../shared/config/ads.config';
 import { GoogleAdSlot } from '../../../shared/components/GoogleAdSlot';
 
+/**
+ * 业务意图：画板左下角悬挂书签与广告招租弹窗组件 (Corner Hanging Bookmark Component)。
+ * 带有 `.animate-bookmark-swing` 微动摇摆动画，点击拉出复古手账信封窗口，内置文具商品推介、Google AdSense 及“商务合作/广告招租”弹窗。
+ * 副作用：无状态，点击更新 DOM 模态框 class 显示/隐藏。
+ */
 export const CornerBookmark = () => {
+  if (adsConfig.cornerBookmark && !adsConfig.cornerBookmark.enabled) {
+    return null;
+  }
+
   const adsList = adsConfig.bookmarkAds;
   const business = adsConfig.contactBusiness;
 
+  // 【步骤 1/4】徽章色彩映射函数
   const badgeColorStyle = (color: string) => {
     switch (color) {
       case 'rose':
@@ -22,7 +32,7 @@ export const CornerBookmark = () => {
 
   return (
     <div>
-      {/* Hanging Bookmark Trigger - Bottom Left */}
+      {/* 【步骤 2/4】左下角悬挂书签触发器：浮动微动摇摆动画，点击移除 #bookmark-modal 的 `hidden` 类 */}
       <div
         id="corner-bookmark-btn"
         class="fixed bottom-8 left-8 z-40 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-300 hover:to-pink-400 text-white rounded-2xl shadow-lg shadow-rose-900/15 cursor-pointer animate-bookmark-swing transition-all active:scale-95 border border-rose-300 select-none"
@@ -33,14 +43,14 @@ export const CornerBookmark = () => {
         <span class="text-xs font-bold font-sans tracking-wide">手账特惠福利</span>
       </div>
 
-      {/* Bookmark Ad Envelope Modal */}
+      {/* 【步骤 3/4】书签特惠福利信封模态框 */}
       <div
         id="bookmark-modal"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm hidden"
         onclick="if(event.target === this) this.classList.add('hidden')"
       >
         <div class="relative w-full max-w-md p-6 bg-[#fffdfa] border border-[#e2d4c7] rounded-2xl shadow-2xl mx-4 font-sans">
-          {/* Close button */}
+          {/* 关闭 ✕ 按钮 */}
           <button
             class="absolute top-4 right-4 text-[#8c7b70] hover:text-[#382b26] p-1 rounded-full hover:bg-black/5 transition-colors cursor-pointer"
             onclick="document.getElementById('bookmark-modal').classList.add('hidden')"
@@ -60,10 +70,10 @@ export const CornerBookmark = () => {
             </div>
           </div>
 
-          {/* Google AdSense Unit (Automatic / Banner) */}
+          {/* 谷歌 AdSense 广告位容器 */}
           <GoogleAdSlot />
 
-          {/* Ad Cards List */}
+          {/* 电商联盟商品推荐列表：读取 ads.config.ts 中的 bookmarkAds */}
           <div class="flex flex-col gap-3 my-4 max-h-[340px] overflow-y-auto pr-1">
             {adsList.map((item) => (
               <a
@@ -93,7 +103,7 @@ export const CornerBookmark = () => {
             ))}
           </div>
 
-          {/* Business & Sponsor Contact Footer */}
+          {/* 模态框底部“📢 商务合作”按键：点击唤起合作招租对话框 #business-modal */}
           <div class="flex items-center justify-between pt-3 border-t border-[#eee5dc] text-[11px] text-[#b5a69c]">
             <span>赞助商广告 · 保持手账社区良性运营</span>
             <button
@@ -107,7 +117,7 @@ export const CornerBookmark = () => {
         </div>
       </div>
 
-      {/* Business Cooperation Modal */}
+      {/* 【步骤 4/4】商务合作 / 广告位招租对话框 */}
       <div
         id="business-modal"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm hidden"

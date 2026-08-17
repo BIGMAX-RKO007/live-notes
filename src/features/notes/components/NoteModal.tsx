@@ -1,11 +1,20 @@
 import { adsConfig } from '../../../shared/config/ads.config';
 
-export const NoteModal = () => {
+interface NoteModalProps {
+  boardOwnerId?: string;
+}
+
+/**
+ * 业务意图：撰写/贴上新手账便签模态框组件 (Create Note Modal Component)。
+ * 提供右下角固定定位的 `+` 悬浮触发按钮，点击弹出拟物风手账表单，支持输入文本、选择纸张色彩并原生嵌入好物推荐推广外链。
+ * 副作用：无状态，通过 HTMX 发起 POST /api/notes，表单提交成功后重置 DOM 输入框并隐藏 Modal。
+ */
+export const NoteModal = ({ boardOwnerId = '' }: NoteModalProps) => {
   const footerAd = adsConfig.modalFooterBanner;
 
   return (
     <div>
-      {/* Floating Action Button */}
+      {/* 【步骤 1/4】右下角 Floating Action Button (`+` 按钮)：带有呼吸脉冲动画，点击显示弹窗 */}
       <button
         id="open-modal-btn"
         class="fixed bottom-8 right-8 z-40 flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 rounded-full shadow-lg shadow-amber-900/20 animate-[pulse_2.5s_infinite] transition-all duration-150 active:scale-95 cursor-pointer font-bold text-2xl border border-amber-300"
@@ -15,15 +24,15 @@ export const NoteModal = () => {
         +
       </button>
 
-      {/* Modal Overlay */}
+      {/* 【步骤 2/4】 Modal Overlay：磨砂玻璃遮罩层，点击遮罩背景自动隐藏 */}
       <div
         id="note-modal"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm hidden"
         onclick="if(event.target === this) this.classList.add('hidden')"
       >
-        {/* Modal Card */}
+        {/* Modal 拟物纸卡片 */}
         <div class="relative w-full max-w-md p-6 bg-[#fffdfa] border border-[#e2d4c7] rounded-2xl shadow-2xl mx-4">
-          {/* Close button */}
+          {/* 关闭按钮 ✕ */}
           <button
             class="absolute top-4 right-4 text-[#8c7b70] hover:text-[#382b26] transition-colors duration-150 font-bold text-lg cursor-pointer"
             onclick="document.getElementById('note-modal').classList.add('hidden')"
@@ -35,6 +44,7 @@ export const NoteModal = () => {
             ✍️ 撰写手账留言
           </h3>
 
+          {/* 【步骤 3/4】表单配置：使用 HTMX POST /api/notes，成功后直接 append 到 #board-notes-container */}
           <form
             hx-post="/api/notes"
             hx-target="#board-notes-container"
@@ -43,7 +53,7 @@ export const NoteModal = () => {
             id="note-form"
             class="flex flex-col gap-4"
           >
-            {/* Content Input */}
+            {/* 留言文本输入域 */}
             <div class="flex flex-col gap-1.5">
               <label for="content-textarea" class="text-xs font-semibold text-[#8c7b70] uppercase tracking-wider font-sans">
                 留言内容
@@ -59,33 +69,33 @@ export const NoteModal = () => {
               />
             </div>
 
-            {/* Color Picker */}
+            {/* 莫兰迪手账色调 Radio 单选选择器 */}
             <div class="flex flex-col gap-1.5">
               <span class="text-xs font-semibold text-[#8c7b70] uppercase tracking-wider font-sans">
                 选择手账纸色调
               </span>
               <div class="flex gap-3 mt-1">
-                {/* Yellow */}
+                {/* Yellow 色彩 */}
                 <label class="relative cursor-pointer">
                   <input type="radio" name="color" value="yellow" checked class="sr-only peer" />
                   <div class="w-8 h-8 rounded-full bg-[#fef6e4] border-2 border-[#e2d4c7] peer-checked:border-amber-600 transition-all duration-150 shadow-sm" />
                 </label>
-                {/* Pink */}
+                {/* Pink 色彩 */}
                 <label class="relative cursor-pointer">
                   <input type="radio" name="color" value="pink" class="sr-only peer" />
                   <div class="w-8 h-8 rounded-full bg-[#fcf0e4] border-2 border-[#e2d4c7] peer-checked:border-rose-500 transition-all duration-150 shadow-sm" />
                 </label>
-                {/* Blue */}
+                {/* Blue 色彩 */}
                 <label class="relative cursor-pointer">
                   <input type="radio" name="color" value="blue" class="sr-only peer" />
                   <div class="w-8 h-8 rounded-full bg-[#eaf4f4] border-2 border-[#e2d4c7] peer-checked:border-sky-500 transition-all duration-150 shadow-sm" />
                 </label>
-                {/* Green */}
+                {/* Green 色彩 */}
                 <label class="relative cursor-pointer">
                   <input type="radio" name="color" value="green" class="sr-only peer" />
                   <div class="w-8 h-8 rounded-full bg-[#e8f5e9] border-2 border-[#e2d4c7] peer-checked:border-emerald-500 transition-all duration-150 shadow-sm" />
                 </label>
-                {/* Purple */}
+                {/* Purple 色彩 */}
                 <label class="relative cursor-pointer">
                   <input type="radio" name="color" value="purple" class="sr-only peer" />
                   <div class="w-8 h-8 rounded-full bg-[#f3e8ff] border-2 border-[#e2d4c7] peer-checked:border-purple-500 transition-all duration-150 shadow-sm" />
@@ -93,11 +103,12 @@ export const NoteModal = () => {
               </div>
             </div>
 
-            {/* Hidden initial position */}
+            {/* 隐藏字段：设定初始默认的中心百分比坐标 (45%, 45%) 与目标画板主人 ID */}
             <input type="hidden" name="xPos" value="45" />
             <input type="hidden" name="yPos" value="45" />
+            <input type="hidden" name="boardOwnerId" value={boardOwnerId} />
 
-            {/* Submit Button */}
+            {/* 提交按钮 */}
             <button
               type="submit"
               class="w-full py-3 mt-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 text-sm font-bold rounded-xl shadow-md transition-all duration-150 active:scale-[0.98] cursor-pointer font-sans"
@@ -105,7 +116,8 @@ export const NoteModal = () => {
               贴在手账本里 🌸
             </button>
 
-            {/* Native Ad / Promo Banner Footer */}
+            {/* 【步骤 4/4】原生广告推介位：表单底部好物推荐文字链 */}
+            {/* 分支 A：配置中开启了 footerAd，显示手账达人好物推荐外链 */}
             {footerAd && footerAd.enabled && (
               <div class="mt-3 pt-3 border-t border-[#eee5dc] text-center">
                 <a

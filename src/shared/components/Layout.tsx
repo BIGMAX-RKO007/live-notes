@@ -6,6 +6,12 @@ interface LayoutProps {
   title: string;
 }
 
+/**
+ * 业务意图：全站 HTML 外壳 Shell 组件 (Master Page Layout Component)。
+ * 提供全站统一的“奶油手账风 (Cozy Journal Theme)”设计系统基础：
+ * 引入 Google Fonts 手账字体、Tailwind CSS、HTMX 库、Google AdSense 全局验证脚本、方格纸 SVG 网格背景与日落光影。
+ * 副作用：无状态依赖，纯服务端 JSX 引擎编译 HTML。
+ */
 export const Layout = ({ children, title }: LayoutProps) => {
   return (
     <html lang="zh-CN" class="h-full bg-[#fcfaf7] text-[#382b26] antialiased selection:bg-amber-200 selection:text-amber-900">
@@ -14,7 +20,8 @@ export const Layout = ({ children, title }: LayoutProps) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
 
-        {/* Google AdSense Script (Ownership Verification & Auto Ads) */}
+        {/* 【步骤 1/4】动态加载 Google AdSense 谷歌官方验证与自动广告脚本 */}
+        {/* 分支 A：配置中开启了谷歌广告 (enabled === true)，向 head 注入脚本 */}
         {adsConfig.googleAdSense && adsConfig.googleAdSense.enabled && (
           <script
             async
@@ -23,13 +30,13 @@ export const Layout = ({ children, title }: LayoutProps) => {
           />
         )}
 
-        {/* Google Fonts */}
+        {/* 【步骤 2/4】引入 Google Fonts 字体库：Outfit(西文sans)、Noto Serif SC(手账宋体serif)、Zhi Mang Xing(手写体) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Serif+SC:wght@400;600;700&family=Zhi+Mang+Xing&display=swap" rel="stylesheet" />
-        {/* Tailwind CSS */}
+        
+        {/* 【步骤 3/4】引入 Tailwind CSS 动态编译脚本并注入手账专属设计系统 Design Tokens */}
         <script src="https://cdn.tailwindcss.com"></script>
-        {/* Configure Tailwind with custom values */}
         <script dangerouslySetInnerHTML={{
           __html: `
             tailwind.config = {
@@ -51,8 +58,11 @@ export const Layout = ({ children, title }: LayoutProps) => {
             }
           `
         }} />
-        {/* HTMX */}
+
+        {/* 【步骤 4/4】引入 HTMX 超轻量交互库，支持 HTML-over-the-wire 局部无刷请求 */}
         <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+        
+        {/* 拟物手账 CSS 引擎：方格网格线、撕边和纸胶带 (Washi Tape) 锯齿 `clip-path`、书签摇摆动画 */}
         <style dangerouslySetInnerHTML={{
           __html: `
             /* Cozy Cream Journal Grid Canvas */
@@ -218,14 +228,14 @@ export const Layout = ({ children, title }: LayoutProps) => {
         }} />
       </head>
       <body class="h-full overflow-hidden board-grid grid-dots flex flex-col font-sans select-none relative text-[#382b26]">
-        {/* Ambient Sunset Light */}
+        {/* 动态日落柔晕浮动层 */}
         <div class="drift-glow-1"></div>
         <div class="drift-glow-2"></div>
         
-        {/* Soft Vignette border */}
+        {/* 柔和暗角收边层 */}
         <div class="vignette-overlay"></div>
 
-        {/* Content Shell */}
+        {/* 页面内容挂载容器 */}
         <div class="relative z-10 flex flex-col h-full w-full">
           {children}
         </div>

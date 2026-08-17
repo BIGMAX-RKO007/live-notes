@@ -1,8 +1,9 @@
 /**
  * 🛍️ 手账风原生广告、Google AdSense 与电商联盟 (CPS / 淘客 / 京东) 中央配置文件
- * 修改此文件中的链接、发布商 ID 或文字，页面所有广告位将自动同步更新。
+ * 业务意图：集中化管理全站广告与变现推广配置。替换此文件中的链接、客户 ID 或文本，页面所有关联广告位将同步生效。
  */
 
+// Google AdSense 发布商与代码配置 Schema
 export interface GoogleAdSenseConfig {
   enabled: boolean;
   client: string;
@@ -10,6 +11,7 @@ export interface GoogleAdSenseConfig {
   slotId?: string;
 }
 
+// 品牌赞助手账卡片 (Sponsor Note) 配置 Schema
 export interface SponsorAdConfig {
   enabled: boolean;
   tag: string;
@@ -24,6 +26,7 @@ export interface SponsorAdConfig {
   likesCount: string;
 }
 
+// 左下角悬挂书签广告条目 Schema
 export interface BookmarkAdItem {
   id: string;
   icon: string;
@@ -34,6 +37,7 @@ export interface BookmarkAdItem {
   targetUrl: string;
 }
 
+// 新建弹窗表单底部文案推介位 Schema
 export interface ModalFooterAdConfig {
   enabled: boolean;
   icon: string;
@@ -41,6 +45,7 @@ export interface ModalFooterAdConfig {
   targetUrl: string;
 }
 
+// 自助商务合作/广告位招租弹窗联系方式 Schema
 export interface ContactBusinessConfig {
   email: string;
   wechat?: string;
@@ -48,7 +53,7 @@ export interface ContactBusinessConfig {
 }
 
 export const adsConfig = {
-  // 0. Google AdSense 谷歌官方广告（所有权验证与自动广告）
+  // 0. Google AdSense 谷歌官方广告（已绑定账号验证与自动广告）
   googleAdSense: {
     enabled: true,
     client: 'ca-pub-3978355800233117',
@@ -72,6 +77,9 @@ export const adsConfig = {
   } as SponsorAdConfig,
 
   // 2. 画板左下角——手账书签弹窗推荐列表 (Bookmark Ads)
+  cornerBookmark: {
+    enabled: true,
+  },
   bookmarkAds: [
     {
       id: 'item-1',

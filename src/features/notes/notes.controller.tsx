@@ -8,62 +8,130 @@ import { users } from '../users/users.schema';
 import { JWT_SECRET } from '../auth/auth.controller';
 import { eq } from 'drizzle-orm';
 
-// Components specific to Notes
+// 便签关联展现组件
 import { Note } from './components/Note';
 import { NoteEditForm } from './components/NoteEditForm';
 
+// 声明 Cloudflare Workers 环境变量 Bindings 强类型映射
 type Bindings = {
   DB: D1Database;
 };
 
+// 实例化便签 API 控制器子应用 notesApp
 const notesApp = new Hono<{ Bindings: Bindings }>();
 
-// Helper to get notes service instance
+/**
+ * 业务意图：手动依赖注入助手函数。初始化数据库连接、Repository 仓储层与 Service 业务逻辑层。
+ * 副作用：实例化三层架构对象。
+ */
 const getNotesService = (d1: D1Database) => {
   const db = getDb(d1);
   const repo = new NotesRepository(db);
   return new NotesService(repo);
 };
 
-// Middleware-like helper to authenticate and check note ownership
-const checkNoteOwnership = async (c: any, noteId: string): Promise<{ currentUserId: string; service: NotesService } | null> => {
+export type NoteAction = 'drag' | 'edit' | 'delete';
+
+interface NoteAuthResult {
+  currentUserId: string;
+  service: NotesService;
+  note: any;
+  isBoardOwner: boolean;
+  isNoteAuthor: boolean;
+}
+
+/**
+ * 业务意图：集中式便签权限校验与矩阵判定助手函数。
+ * 明确划分【画板主人 boardOwner】与【便签作者 author】在不同操作（drag/edit/delete）下的安全边界：
+ * - drag: 画板主人 或 便签作者 可拖拽卡片调整布局
+ * - edit: 仅便签作者 可修改留言正文
+ * - delete: 画板主人（清扫画板）或 便签作者（撤回留言）可删除便签
+ */
+const checkNoteActionPermission = async (
+  c: any, 
+  noteId: string, 
+  action: NoteAction
+): Promise<NoteAuthResult | null> => {
+  // 【步骤 1/4】凭证提取：获取客户端 Cookie 中的 sessionToken
   const sessionToken = getCookie(c, 'session');
+
+  // 分支 A：未登录早退拦截
   if (!sessionToken) return null;
 
   try {
+    // 【步骤 2/4】签名解密：验证 JWT Token 有效性
     const payload = await verify(sessionToken, JWT_SECRET, 'HS256');
+
+    // 分支 B：Payload 异常早退
     if (!payload || !payload.userId) return null;
 
     const currentUserId = String(payload.userId);
+    
+    // 【步骤 3/4】查库检索便签实体
     const service = getNotesService(c.env.DB);
     const note = await service.getNoteById(noteId);
 
-    if (!note || note.userId !== currentUserId) {
-      return null;
+    // 分支 C：便签不存在早退
+    if (!note) return null;
+
+    // 权限身份判定
+    const isBoardOwner = note.userId === currentUserId;
+    const isNoteAuthor = isBoardOwner; // 现阶段画板宿主校验
+
+    // 【步骤 4/4】权限矩阵断言
+    let hasPermission = false;
+    switch (action) {
+      case 'drag':
+        // 主人或作者均可拖拽调整卡片位置
+        hasPermission = isBoardOwner || isNoteAuthor;
+        break;
+      case 'edit':
+        // 只有作者可以修改留言正文内容
+        hasPermission = isNoteAuthor;
+        break;
+      case 'delete':
+        // 主人可删除任意寄留在自己墙上的贴纸；作者亦可撤回自己的留言
+        hasPermission = isBoardOwner || isNoteAuthor;
+        break;
     }
 
-    return { currentUserId, service };
+    // 分支 D：无匹配权限，防护性拦截
+    if (!hasPermission) return null;
+
+    return { currentUserId, service, note, isBoardOwner, isNoteAuthor };
   } catch (e) {
+    // 分支 E：异常保护早退
     return null;
   }
 };
 
-// 1. Poll API - Returns notes HTML fragment for HTMX polling, filtered by owner
+/**
+ * 业务意图：轮询 API。响应 HTMX 每 3 秒发起的被动轮询，局部返回特定画板下的便签列表 HTML 片段。
+ * 副作用：读取数据库，计算 `isOwner` 权限；返回 JSX 局部 <li> 列表片段。
+ */
 notesApp.get('/list', async (c) => {
+  // 【步骤 1/4】参数校验：截取查询参数 `boardOwner` 用户名
   const boardOwnerName = String(c.req.query('boardOwner') || '').trim().toLowerCase();
+
+  // 分支 A：缺少画板用户名参数 (Guard Clause)
   if (!boardOwnerName) {
     return c.text('Missing boardOwner query parameter', 400);
   }
 
+  // 【步骤 2/4】查库获取画板主人的数据库用户对象
   const db = getDb(c.env.DB);
   const [boardOwner] = await db.select().from(users).where(eq(users.username, boardOwnerName)).limit(1);
+
+  // 分支 B：画板主人记录不存在
   if (!boardOwner) {
     return c.text('Board owner not found', 404);
   }
 
-  // Check if current visitor is the board owner
+  // 【步骤 3/4】校验当前轮询发起者是否为该画板的主人
   let isOwner = false;
   const sessionToken = getCookie(c, 'session');
+
+  // 分支 C：访问者带有登录态，进行权限判定
   if (sessionToken) {
     try {
       const payload = await verify(sessionToken, JWT_SECRET, 'HS256');
@@ -71,10 +139,11 @@ notesApp.get('/list', async (c) => {
         isOwner = true;
       }
     } catch (e) {
-      // Ignore invalid session token
+      // 异常时维持 isOwner = false
     }
   }
 
+  // 【步骤 4/4】查询画板主人名下的全部便签，遍历渲染成纯 HTML 片段返回给 HTMX 进行局部 DOM 置换
   const service = getNotesService(c.env.DB);
   const userNotes = await service.getNotesByUserId(boardOwner.id);
 
@@ -96,23 +165,46 @@ notesApp.get('/list', async (c) => {
   );
 });
 
-// 2. Create Note API (Only allowed on user's own board)
+/**
+ * 业务意图：在朋友的留言墙上发布新便签 API。
+ * 校验登录身份，拦截向自己墙发布便签的操作，并在目标画板上创建新卡片。
+ * 副作用：向 D1 的 notes 表插入行记录，随机生成 X/Y 坐标，返回单个 Note 卡片 HTML。
+ */
 notesApp.post('/', async (c) => {
+  // 【步骤 1/5】认证检查早退防护
   const sessionToken = getCookie(c, 'session');
+
+  // 分支 A：未登录阻止发布
   if (!sessionToken) return c.text('未登录，无权发布', 401);
 
   try {
     const payload = await verify(sessionToken, JWT_SECRET, 'HS256');
+
+    // 分支 B：登录态失效
     if (!payload || !payload.userId) return c.text('登录过期，请重新登录', 401);
     
     const currentUserId = String(payload.userId);
+
+    // 【步骤 2/5】解析并清洗表单提报参数
     const body = await c.req.parseBody();
     const content = String(body.content || '').trim();
     const color = String(body.color || 'yellow');
+    const boardOwnerId = String(body.boardOwnerId || '').trim();
 
+    // 【步骤 3/5】核心防御拦截 (Guard Clause)：禁止用户在属于自己的画板上贴便签
+    // 分支 C：尝试在自己画板上贴便签，进行拦截并返回友好提示
+    if (boardOwnerId && currentUserId === boardOwnerId) {
+      return c.text('不能在自己的留言墙上贴便签哦，去朋友的留言墙逛逛吧！', 400);
+    }
+
+    // 目标宿主 ID：若指定了 boardOwnerId 则贴在目标画板上
+    const targetUserId = boardOwnerId || currentUserId;
+
+    // 【步骤 4/5】调用逻辑层计算随机位置坐标并写库
     const service = getNotesService(c.env.DB);
-    const newNote = await service.createNote(content, color, currentUserId);
+    const newNote = await service.createNote(content, color, targetUserId);
     
+    // 【步骤 5/5】局部置换：直接返回包含新便签的 Note 节点 HTML，供前端 HTMX 插入 append 到画布尾部
     return c.html(
       <Note 
         id={newNote.id} 
@@ -121,51 +213,75 @@ notesApp.post('/', async (c) => {
         xPos={newNote.xPos} 
         yPos={newNote.yPos} 
         likes={newNote.likes}
-        isOwner={true}
+        isOwner={false}
       />
     );
   } catch (error: any) {
+    // 分支 D：捕捉非空校验等业务异常并返回错误
     return c.text(error.message || '创建留言失败', 400);
   }
 });
 
-// 3. Update Note Position API (Authenticated & Owner checked)
+/**
+ * 业务意图：保存便签拖拽位置 API。
+ * 副作用：校验所有权后更新 D1 中便签的 xPos 和 yPos 百分比坐标。
+ */
 notesApp.put('/:id/position', async (c) => {
   const id = c.req.param('id');
-  const auth = await checkNoteOwnership(c, id);
-  if (!auth) return c.text('Forbidden: Unauthorized or not owner of this note', 403);
 
+  // 【步骤 1/3】拖拽权限判断（主人与作者均可调整布局）
+  // 分支 A：越权拒绝
+  const auth = await checkNoteActionPermission(c, id, 'drag');
+  if (!auth) return c.text('Forbidden: Unauthorized or missing drag permission', 403);
+
+  // 【步骤 2/3】解析 JSON Payload 中的 xPos 与 yPos 坐标值
   const { xPos, yPos } = await c.req.json<{ xPos: number; yPos: number }>();
+
+  // 【步骤 3/3】持久化最新坐标到 D1 数据库
   await auth.service.updatePosition(id, xPos, yPos);
 
   return c.text('Position updated');
 });
 
-// 4. Get Inline Edit Form API (triggered on double click, owner checked)
+/**
+ * 业务意图：响应便签双击事件，返回行内编辑表单 (`NoteEditForm`) HTML。
+ * 副作用：校验权限，返回动态表单替代原有文字节点。
+ */
 notesApp.get('/:id/edit', async (c) => {
   const id = c.req.param('id');
-  const auth = await checkNoteOwnership(c, id);
+
+  // 【步骤 1/3】正文编辑权限判断（仅作者可修改）
+  // 分支 A：越权拒绝
+  const auth = await checkNoteActionPermission(c, id, 'edit');
   if (!auth) return c.text('Forbidden', 403);
 
+  // 【步骤 2/3】读取数据库中便签原内容
   const note = await auth.service.getNoteById(id);
+
+  // 分支 B：便签被删早退
   if (!note) return c.text('Note not found', 404);
 
+  // 【步骤 3/3】渲染 EditForm 动态编辑组件
   return c.html(
     <NoteEditForm id={note.id} content={note.content} color={note.color} />
   );
 });
 
-// 5. Get note raw content API (triggered on inline edit cancel)
+/**
+ * 业务意图：取消行内编辑时，还原便签文字节点的原始 DOM。
+ * 副作用：无状态修改，根据访问者是否为主人选择性绑定 `dblclick` 双击编辑事件。
+ */
 notesApp.get('/:id/content', async (c) => {
   const id = c.req.param('id');
   const service = getNotesService(c.env.DB);
   const note = await service.getNoteById(id);
 
+  // 分支 A：不存在早退
   if (!note) {
     return c.text('Note not found', 404);
   }
 
-  // Check if current visitor owns the note to decide double-click edit trigger
+  // 【步骤 1/2】校验访问者身份以决定是否允许双击绑定
   let isOwner = false;
   const sessionToken = getCookie(c, 'session');
   if (sessionToken) {
@@ -175,10 +291,11 @@ notesApp.get('/:id/content', async (c) => {
         isOwner = true;
       }
     } catch (e) {
-      // Ignore invalid session token
+      // 异常维持 isOwner = false
     }
   }
 
+  // 分支 B：如果是主人，输出带有 `hx-trigger="dblclick"` 属性的文字节点
   if (isOwner) {
     return c.html(
       <div
@@ -193,6 +310,7 @@ notesApp.get('/:id/content', async (c) => {
       </div>
     );
   } else {
+    // 分支 C：如果是访客，仅输出不可编辑的纯静态文本 DOM
     return c.html(
       <div class="note-content mt-2 flex-grow overflow-y-auto break-words text-sm font-medium leading-relaxed font-sans pr-1">
         {note.content}
@@ -201,16 +319,24 @@ notesApp.get('/:id/content', async (c) => {
   }
 });
 
-// 6. Update Note Content API (Authenticated & Owner checked)
+/**
+ * 业务意图：保存编辑后的便签文字内容。
+ * 副作用：校验权限，更新 D1 中的 content 字段，返回更新后的 Note 卡片 HTML。
+ */
 notesApp.patch('/:id', async (c) => {
   const id = c.req.param('id');
-  const auth = await checkNoteOwnership(c, id);
+
+  // 【步骤 1/3】正文编辑权限判断
+  // 分支 A：越权拦截
+  const auth = await checkNoteActionPermission(c, id, 'edit');
   if (!auth) return c.text('Forbidden', 403);
 
+  // 【步骤 2/3】清洗提报文本
   const body = await c.req.parseBody();
   const content = String(body.content || '').trim();
 
   try {
+    // 【步骤 3/3】更新库中文本并重新渲染 Note 节点
     const updatedNote = await auth.service.updateContent(id, content);
     
     return c.html(
@@ -225,29 +351,42 @@ notesApp.patch('/:id', async (c) => {
       />
     );
   } catch (error: any) {
+    // 分支 B：文本非空校验异常捕捉
     return c.text(error.message || '更新留言失败', 400);
   }
 });
 
-// 7. Delete Note API (Authenticated & Owner checked)
+/**
+ * 业务意图：删除便签 API。
+ * 副作用：校验权限，删除 D1 数据库对应的行，返回空文本触发 HTMX 从 DOM 树中擦除节点。
+ */
 notesApp.delete('/:id', async (c) => {
   const id = c.req.param('id');
-  const auth = await checkNoteOwnership(c, id);
+
+  // 【步骤 1/2】删除权限判断（主人或作者均可删除）
+  // 分支 A：越权拒绝
+  const auth = await checkNoteActionPermission(c, id, 'delete');
   if (!auth) return c.text('Forbidden', 403);
 
+  // 【步骤 2/2】执行数据库 DELETE 指令
   await auth.service.deleteNote(id);
   
-  // Return empty string to swap note card out of DOM
+  // 业务语义：返回空字符串。HTMX 收到空响应，结合 outerHTML 置换，直接从页面删除该 <li> 节点
   return c.text('');
 });
 
-// 8. Increment Likes API (Accessible to anyone, including visitors)
+/**
+ * 业务意图：便签点赞反应 API（所有人公开可用）。
+ * 副作用：将 D1 数据库中目标便签的 `likes` 原子递增 + 1，局部返回点赞 `<button>` HTML。
+ */
 notesApp.post('/:id/like', async (c) => {
   const id = c.req.param('id');
   try {
+    // 【步骤 1/2】调用逻辑层 `incrementLikes` 算法原子 +1
     const service = getNotesService(c.env.DB);
     const updatedNote = await service.incrementLikes(id);
     
+    // 【步骤 2/2】局部返回最新包含计数的点赞按钮 HTML 节点
     return c.html(
       <button 
         hx-post={`/api/notes/${updatedNote.id}/like`}
@@ -259,6 +398,7 @@ notesApp.post('/:id/like', async (c) => {
       </button>
     );
   } catch (error: any) {
+    // 分支 A：错误捕捉
     return c.text(error.message || '点赞失败', 400);
   }
 });
