@@ -18,7 +18,7 @@ export const SponsorNote = () => {
     // 【步骤 2/3】渲染品牌赞助手账卡片根节点：配有香槟金胶带 `.washi-tape-gold` 与暖金沙色彩渐变
     <div
       id="sponsor-note"
-      class="absolute z-30 transition-transform duration-200 select-none cursor-pointer group hover:z-40"
+      class="hidden md:block absolute z-30 transition-transform duration-200 select-none cursor-pointer group hover:z-40"
       style="left: 74%; top: 16%; transform: rotate(-2.5deg);"
       onclick="document.getElementById('sponsor-modal').classList.remove('hidden')"
     >

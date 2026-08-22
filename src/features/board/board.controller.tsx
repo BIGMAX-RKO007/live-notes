@@ -11,6 +11,8 @@ import { Landing } from './components/Landing';
 import { JWT_SECRET } from '../auth/auth.controller';
 import { AuthModal } from '../auth/components/AuthModal';
 import { eq } from 'drizzle-orm';
+import { SystemConfigsService } from '../system/system_configs.service';
+import { adsConfig } from '../../shared/config/ads.config';
 
 // 声明 Cloudflare Workers 环境变量 Bindings 强类型映射，指示路由上下文 c.env 中包含 D1 数据库连接对象 DB
 type Bindings = {
@@ -105,13 +107,29 @@ boardApp.get('/board/:username', async (c) => {
   }
 
   // 业务核心规则：
-  // 1. isOwner: 访问者是画板主人。
-  // 2. canPostNote: 访问者已登录，且访问的是“别人的画板”（允许给朋友贴便签）。
-  // 3. isLoggedIn: 访问者是否已登录（未登录访问别人墙时提示先登录）。
   const isLoggedIn = Boolean(currentUserId);
   const canPostNote = Boolean(currentUserId && !isOwner);
 
-  // 【步骤 4/5】按分层架构 (Repo -> Service) 检索当前画板主人下挂载的所有留言便签列表
+  // 【步骤 4/5】按分层架构 (Repo -> Service) 检索当前画板主人下挂载的所有留言便签列表，同步读取 D1 数据库配置
+  const configsService = new SystemConfigsService(db);
+  const savedAdsConfig = await configsService.getConfig<any>('ads_config', null);
+  if (savedAdsConfig) {
+    if (typeof savedAdsConfig.sponsorNoteEnabled === 'boolean') {
+      adsConfig.sponsorNote.enabled = savedAdsConfig.sponsorNoteEnabled;
+    }
+    if (typeof savedAdsConfig.cornerBookmarkEnabled === 'boolean') {
+      adsConfig.cornerBookmark.enabled = savedAdsConfig.cornerBookmarkEnabled;
+    }
+    if (typeof savedAdsConfig.googleAdSenseEnabled === 'boolean') {
+      adsConfig.googleAdSense.enabled = savedAdsConfig.googleAdSenseEnabled;
+    }
+    if (savedAdsConfig.contactBusiness) {
+      if (savedAdsConfig.contactBusiness.email) adsConfig.contactBusiness.email = savedAdsConfig.contactBusiness.email;
+      if (savedAdsConfig.contactBusiness.wechat) adsConfig.contactBusiness.wechat = savedAdsConfig.contactBusiness.wechat;
+      if (savedAdsConfig.contactBusiness.note) adsConfig.contactBusiness.note = savedAdsConfig.contactBusiness.note;
+    }
+  }
+
   const notesRepo = new NotesRepository(db);
   const notesService = new NotesService(notesRepo);
   const userNotes = await notesService.getNotesByUserId(boardOwner.id);

@@ -373,9 +373,12 @@ adminApp.delete('/notes/:id', adminAuthGuard, async (c) => {
   return c.text('');
 });
 
+import { SystemConfigsService } from '../system/system_configs.service';
+
 /**
  * 业务意图：后台实时启停/更新变现广告配置 API。
- * 副作用：根据表单数据更新全局 `adsConfig` 运行状态，并返回局部 Toast HTML 提醒。
+ * 遵循干净架构原则：将启停状态落盘持久化至 D1 数据库 system_configs 表，防止分布式节点重启关停状态重置失效。
+ * 副作用：向 D1 数据库写入记录，同步更新内存默认值，并返回局部 Toast HTML 提醒。
  */
 adminApp.post('/ads/toggle', adminAuthGuard, async (c) => {
   const body = await c.req.parseBody();
@@ -388,7 +391,7 @@ adminApp.post('/ads/toggle', adminAuthGuard, async (c) => {
   const businessWechat = String(body.businessWechat || '').trim();
   const businessNote = String(body.businessNote || '').trim();
 
-  // 更新全局内存配置对象
+  // 1. 同步更新全局内存配置对象 (为当前进程提供快照)
   adsConfig.sponsorNote.enabled = enableSponsorNote;
   adsConfig.cornerBookmark.enabled = enableCornerBookmark;
   adsConfig.googleAdSense.enabled = enableGoogleAdSense;
@@ -397,9 +400,24 @@ adminApp.post('/ads/toggle', adminAuthGuard, async (c) => {
   if (businessWechat) adsConfig.contactBusiness.wechat = businessWechat;
   if (businessNote) adsConfig.contactBusiness.note = businessNote;
 
+  // 2. 核心持久化：落盘写入 D1 数据库 system_configs 表 (Persist to D1 Database)
+  const db = getDb(c.env.DB);
+  const configsService = new SystemConfigsService(db);
+
+  await configsService.setConfig('ads_config', {
+    sponsorNoteEnabled: enableSponsorNote,
+    cornerBookmarkEnabled: enableCornerBookmark,
+    googleAdSenseEnabled: enableGoogleAdSense,
+    contactBusiness: {
+      email: businessEmail || adsConfig.contactBusiness.email,
+      wechat: businessWechat || adsConfig.contactBusiness.wechat,
+      note: businessNote || adsConfig.contactBusiness.note,
+    }
+  });
+
   return c.html(
     <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono text-center">
-      ✅ 广告位配置已成功更新并即时生效！ (品牌赞助: {enableSponsorNote ? '开启' : '关停'}, 悬挂书签: {enableCornerBookmark ? '开启' : '关停'}, Google AdSense: {enableGoogleAdSense ? '开启' : '关停'})
+      ✅ 广告位配置已成功落盘至 D1 数据库！ (品牌赞助: {enableSponsorNote ? '开启' : '关停'}, 悬挂书签: {enableCornerBookmark ? '开启' : '关停'}, Google AdSense: {enableGoogleAdSense ? '开启' : '关停'})
     </div>
   );
 });

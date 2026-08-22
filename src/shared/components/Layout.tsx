@@ -17,7 +17,7 @@ export const Layout = ({ children, title }: LayoutProps) => {
     <html lang="zh-CN" class="h-full bg-[#fcfaf7] text-[#382b26] antialiased selection:bg-amber-200 selection:text-amber-900">
       <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
         <title>{title}</title>
 
         {/* 【步骤 1/4】动态加载 Google AdSense 谷歌官方验证与自动广告脚本 */}
@@ -227,7 +227,7 @@ export const Layout = ({ children, title }: LayoutProps) => {
           `
         }} />
       </head>
-      <body class="h-full overflow-hidden board-grid grid-dots flex flex-col font-sans select-none relative text-[#382b26]">
+      <body class="h-full min-h-[100dvh] w-full max-w-full overflow-x-hidden board-grid grid-dots flex flex-col font-sans select-none relative text-[#382b26]">
         {/* 动态日落柔晕浮动层 */}
         <div class="drift-glow-1"></div>
         <div class="drift-glow-2"></div>

@@ -17,7 +17,7 @@ export const NoteModal = ({ boardOwnerId = '' }: NoteModalProps) => {
       {/* 【步骤 1/4】右下角 Floating Action Button (`+` 按钮)：带有呼吸脉冲动画，点击显示弹窗 */}
       <button
         id="open-modal-btn"
-        class="fixed bottom-8 right-8 z-40 flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 rounded-full shadow-lg shadow-amber-900/20 animate-[pulse_2.5s_infinite] transition-all duration-150 active:scale-95 cursor-pointer font-bold text-2xl border border-amber-300"
+        class="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-50 flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 rounded-full shadow-lg shadow-amber-900/20 animate-[pulse_2.5s_infinite] transition-all duration-150 active:scale-95 cursor-pointer font-bold text-2xl border border-amber-300"
         onclick="document.getElementById('note-modal').classList.remove('hidden')"
         title="写下新手账留言"
       >

@@ -83,7 +83,7 @@ export const Note = ({
   return (
     <div
       id={`note-${id}`}
-      class={`note-card absolute p-6 w-64 min-h-[175px] flex flex-col justify-between rounded-md paper-shadow paper-texture border ${style.bg} ${style.border} ${style.text} ${tilt}`}
+      class={`note-card absolute p-5 sm:p-6 w-[82vw] max-w-[256px] sm:w-64 min-h-[175px] flex flex-col justify-between rounded-md paper-shadow paper-texture border ${style.bg} ${style.border} ${style.text} ${tilt}`}
       style={{ left: `${xPos}%`, top: `${yPos}%`, touchAction: 'none' }}
       data-note-id={id}
     >

@@ -13,8 +13,16 @@ export function renderAuthError(c: any, message: string) {
 
 export function renderToastSuccess(c: any, message: string) {
   return c.html(
-    `<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold text-center">
+    `<div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono text-center">
       ✅ ${message}
+    </div>`
+  );
+}
+
+export function renderToastError(c: any, message: string) {
+  return c.html(
+    `<div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-mono text-center">
+      ❌ ${message}
     </div>`
   );
 }

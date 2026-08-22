@@ -114,6 +114,8 @@ export const Board = ({
       {/* 【步骤 2/4】主画板大画布：挂载原生广告卡片、悬挂书签组件及 3 秒轮询容器 */}
       <div 
         id="board-canvas" 
+        data-is-owner={isOwner ? 'true' : 'false'}
+        data-is-logged-in={isLoggedIn ? 'true' : 'false'}
         class="flex-grow w-full h-full relative overflow-hidden"
       >
         {/* 品牌赞助手账卡片组件 */}
@@ -153,7 +155,7 @@ export const Board = ({
           hx-get="/api/board/my-redirect"
           hx-target="body"
           hx-swap="beforeend"
-          class="fixed bottom-8 right-8 z-40 flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 rounded-full shadow-lg shadow-amber-900/20 animate-[pulse_2.5s_infinite] transition-all duration-150 active:scale-95 cursor-pointer font-bold text-2xl border border-amber-300"
+          class="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 z-50 flex items-center justify-center w-14 h-14 bg-gradient-to-tr from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-950 rounded-full shadow-lg shadow-amber-900/20 animate-[pulse_2.5s_infinite] transition-all duration-150 active:scale-95 cursor-pointer font-bold text-2xl border border-amber-300"
           title="登录后给对方留下手账留言"
         >
           +
@@ -164,8 +166,11 @@ export const Board = ({
       <script dangerouslySetInnerHTML={{
         __html: `
           (function() {
-            const isOwner = ${isOwner ? 'true' : 'false'};
-            const isLoggedIn = ${isLoggedIn ? 'true' : 'false'};
+            const canvas = document.getElementById('board-canvas');
+            const container = document.getElementById('board-notes-container');
+
+            const isOwner = canvas ? canvas.dataset.isOwner === 'true' : false;
+            const isLoggedIn = canvas ? canvas.dataset.isLoggedIn === 'true' : false;
             
             let activeNote = null;
             let startX = 0;
@@ -173,9 +178,6 @@ export const Board = ({
             let initialLeft = 0;
             let initialTop = 0;
             window.isDragging = false;
- 
-            const canvas = document.getElementById('board-canvas');
-            const container = document.getElementById('board-notes-container');
  
             // 拖拽开始函数：通过事件委托绑定到便签贴纸节点
             function startDrag(e) {
@@ -231,15 +233,21 @@ export const Board = ({
               const cardWidth = activeNote.offsetWidth;
               const cardHeight = activeNote.offsetHeight;
               
-              newLeftPx = Math.max(0, Math.min(newLeftPx, rect.width - cardWidth));
-              newTopPx = Math.max(0, Math.min(newTopPx, rect.height - cardHeight));
- 
-              // 转换回相对百分比坐标，并实施严密的百分比防护钳制 (Percentage Boundary Clamp: 1% ~ 82%)
+              const maxLeftPx = Math.max(0, rect.width - cardWidth - 12);
+              const maxTopPx = Math.max(0, rect.height - cardHeight - 12);
+
+              newLeftPx = Math.max(8, Math.min(newLeftPx, maxLeftPx));
+              newTopPx = Math.max(8, Math.min(newTopPx, maxTopPx));
+
+              // 转换回相对百分比坐标，并实施基于容器尺寸的防爆屏钳制
               let xPosPercent = (newLeftPx / rect.width) * 100;
               let yPosPercent = (newTopPx / rect.height) * 100;
 
-              xPosPercent = Math.max(1, Math.min(xPosPercent, 82));
-              yPosPercent = Math.max(1, Math.min(yPosPercent, 80));
+              const maxPercentX = Math.max(5, ((rect.width - cardWidth - 8) / rect.width) * 100);
+              const maxPercentY = Math.max(5, ((rect.height - cardHeight - 8) / rect.height) * 100);
+
+              xPosPercent = Math.max(1, Math.min(xPosPercent, maxPercentX));
+              yPosPercent = Math.max(1, Math.min(yPosPercent, maxPercentY));
 
               activeNote.style.left = xPosPercent + '%';
               activeNote.style.top = yPosPercent + '%';
